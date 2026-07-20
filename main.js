@@ -57,6 +57,9 @@ const cueListEl          = document.getElementById("cueList");
 const symWarnEl          = document.getElementById("symWarning");
 const trackWarnEl        = document.getElementById("trackingWarning");
 const prescEl            = document.getElementById("prescription");
+const repTargetEl        = document.getElementById("repTarget");
+const feedbackEl         = document.getElementById("feedbackBanner");
+const cameraStage        = document.getElementById("cameraStage");
 
 // ── Hold timer state ──────────────────────────────────────────────────────────
 let holdInterval  = null;
@@ -103,6 +106,7 @@ let engine = new FeedbackEngine(EXERCISES[0].id, "right");
 renderPrescription(engine.exercise);
 renderTrackingWarning(engine.exercise);
 renderPoseStrip(engine.exercise, engine.stages[0]);
+renderStaticPhaseFlow(engine);
 
 exSelect.addEventListener("change", () => {
   engine.changeExercise(exSelect.value, sideSelect.value);
@@ -112,12 +116,14 @@ exSelect.addEventListener("change", () => {
   progressSection.classList.remove("hidden");
   renderPrescription(engine.exercise);
   renderTrackingWarning(engine.exercise);
-  renderPoseStrip(engine.exercise, engine.stages[0]);
+renderPoseStrip(engine.exercise, engine.stages[0]);
+renderStaticPhaseFlow(engine);
   repCountEl.textContent = "0";
   cueListEl.innerHTML = "";
   symWarnEl.classList.add("hidden");
   progressEl.style.width = "0%";
   progressLbl.textContent = "Position yourself to start";
+  setFeedbackBanner("ready");
 });
 
 sideSelect.addEventListener("change", () => {
@@ -142,7 +148,7 @@ async function createLandmarker() {
     runningMode: "VIDEO",
     numPoses: 1,
   });
-  statusEl.textContent = "Model ready — click Start camera";
+  statusEl.textContent = "Movement guide ready";
   toggleBtn.disabled = false;
 }
 
@@ -208,12 +214,12 @@ function renderFrame() {
         radius: 4,
         color: (data) =>
           (data?.from?.visibility ?? 1) < VISIBILITY_THRESHOLD
-            ? "#f59e0b"
-            : "#4ade80",
+            ? "#f3d77d"
+            : "#76d89b",
       });
       drawingUtils.drawConnectors(landmarks, PoseLandmarker.POSE_CONNECTIONS, {
-        color: "#a7f3d0",
-        lineWidth: 2,
+        color: "#dff2e6",
+        lineWidth: 3,
       });
 
       // worldLandmarks for angle math, landmarks for visibility gating
@@ -224,9 +230,10 @@ function renderFrame() {
 
       updateDebugPanel(angles);
       updateFeedbackPanel(angles);
-      statusEl.textContent = "Tracking";
+      statusEl.textContent = "Tracking your movement";
     } else {
-      statusEl.textContent = "No pose detected";
+      statusEl.textContent = "Step back so your full body is visible";
+      setFeedbackBanner("position");
     }
 
     ctx.restore();
@@ -250,8 +257,6 @@ function updateFeedbackPanel(angles) {
   // Highlight active pose card without re-rendering the whole strip
   poseStripEl.querySelectorAll(".pose-card").forEach((card, i) => {
     card.classList.toggle("active", fb.stages[i] === fb.phase);
-    card.querySelector(".pose-label").style.color =
-      fb.stages[i] === fb.phase ? "var(--accent)" : "";
   });
 
   // Phase flow chips
@@ -293,6 +298,7 @@ function updateFeedbackPanel(angles) {
   cueListEl.innerHTML = fb.cues
     .map((c) => `<li>${c}</li>`)
     .join("");
+  setFeedbackBanner(fb.cues.length ? "adjust" : "good", fb.cues[0]);
 
   // Symmetry warning
   if (fb.symmetryWarning) {
@@ -366,9 +372,9 @@ function renderPrescription(ex) {
     `${p.sets} sets × ${p.reps} reps` +
     (p.holdSeconds ? ` · hold ${p.holdSeconds}s` : "") +
     ` · ${p.daysPerWeek} days/week`;
+  if (repTargetEl) repTargetEl.textContent = p.reps;
 
   // Show inline hold timer only for stretch exercises
-  console.log("renderPrescription:", ex.id, ex.category, p.holdSeconds, holdInlineEl);
   if (ex.category === "stretch" && p.holdSeconds) {
     holdInlineEl.classList.remove("hidden");
     holdInlineEl.classList.remove("active");
@@ -387,6 +393,45 @@ function renderTrackingWarning(ex) {
   }
 }
 
+function renderStaticPhaseFlow(activeEngine) {
+  phaseFlowEl.innerHTML = activeEngine.stages
+    .map((stage, index) => {
+      const active = index === 0 ? " active" : "";
+      const arrow =
+        index < activeEngine.stages.length - 1
+          ? '<span class="phase-arrow">→</span>'
+          : "";
+      return `<span class="phase-chip${active}">${stage}</span>${arrow}`;
+    })
+    .join("");
+}
+
+function setFeedbackBanner(state, cue = "") {
+  if (!feedbackEl) return;
+  const symbol = feedbackEl.querySelector(".feedback-symbol");
+  const title = feedbackEl.querySelector("strong");
+  const detail = feedbackEl.querySelector("div > span");
+  feedbackEl.classList.toggle("needs-adjustment", state === "adjust");
+
+  if (state === "adjust") {
+    symbol.textContent = "!";
+    title.textContent = "Small adjustment";
+    detail.textContent = cue || "Follow the coaching cue below";
+  } else if (state === "good") {
+    symbol.textContent = "✓";
+    title.textContent = "Movement looks good";
+    detail.textContent = "Keep this pace and breathe naturally";
+  } else if (state === "position") {
+    symbol.textContent = "↔";
+    title.textContent = "Let’s get you in frame";
+    detail.textContent = "Make sure your full body is visible";
+  } else {
+    symbol.textContent = "●";
+    title.textContent = "Get into position";
+    detail.textContent = "Your guidance will appear here";
+  }
+}
+
 // ── Controls ──────────────────────────────────────────────────────────────────
 
 toggleBtn.addEventListener("click", async () => {
@@ -396,7 +441,8 @@ toggleBtn.addEventListener("click", async () => {
       statusEl.textContent = "Starting camera…";
       await startCamera();
       running = true;
-      toggleBtn.textContent = "Stop camera";
+      cameraStage?.classList.add("camera-active");
+      toggleBtn.innerHTML = 'Stop camera guide <span aria-hidden="true">■</span>';
       toggleBtn.disabled = false;
       renderFrame();
     } catch (err) {
@@ -408,11 +454,13 @@ toggleBtn.addEventListener("click", async () => {
     cancelAnimationFrame(rafId);
     stopCamera();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    toggleBtn.textContent = "Start camera";
+    cameraStage?.classList.remove("camera-active");
+    toggleBtn.innerHTML = 'Start camera guide <span aria-hidden="true">→</span>';
     statusEl.textContent = "Stopped";
+    setFeedbackBanner("ready");
   }
 });
 
 createLandmarker().catch((err) => {
-  statusEl.textContent = `Model failed to load: ${err.message}`;
+  statusEl.textContent = "Movement model unavailable — check your connection";
 });

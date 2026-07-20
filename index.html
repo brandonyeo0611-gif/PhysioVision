@@ -3,113 +3,801 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PhysioVision</title>
+  <meta
+    name="description"
+    content="PhysioVision helps older adults move safely at home with real-time AI exercise guidance and connected physiotherapist care."
+  />
+  <meta name="theme-color" content="#17383a" />
+  <title>PhysioVision — Move well, live free</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>PhysioVision</h1>
-    <p class="subtitle">AI-powered physiotherapy assistant · v2</p>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="site-header" id="top">
+    <a class="brand" href="#top" aria-label="PhysioVision home">
+      <span class="brand-mark" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+      <span>PhysioVision</span>
+    </a>
+
+    <nav class="desktop-nav" aria-label="Main navigation">
+      <a href="#how-it-works">How it works</a>
+      <a href="#practice">Exercise guide</a>
+      <a href="#care-team">For care teams</a>
+      <a href="#safety">Safety</a>
+    </nav>
+
+    <div class="header-actions">
+      <button class="text-button" type="button" data-open="therapist-view">
+        Therapist view
+      </button>
+      <button class="button button-small button-light" type="button" data-open="plan-modal">
+        Create my plan
+      </button>
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-label="Open navigation"
+        aria-expanded="false"
+        aria-controls="mobile-nav"
+      >
+        <span></span><span></span>
+      </button>
+    </div>
   </header>
 
-  <main>
-    <div class="stage">
-      <video id="webcam" autoplay playsinline></video>
-      <canvas id="overlay"></canvas>
-      <div id="status" class="status">Loading model…</div>
-      <div class="setup-tip">
-        Place camera at chest height, 2–3 m away · Stand facing camera · Full body in frame
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+    <a href="#how-it-works">How it works</a>
+    <a href="#practice">Exercise guide</a>
+    <a href="#care-team">For care teams</a>
+    <a href="#safety">Safety</a>
+    <button class="button button-dark" type="button" data-open="plan-modal">
+      Create my plan
+    </button>
+  </nav>
+
+  <main id="main-content">
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow eyebrow-light">
+            <span class="live-dot"></span>
+            AI-guided home rehabilitation
+          </p>
+          <h1>Move well.<br />Live <em>free.</em></h1>
+          <p class="hero-intro">
+            Your camera becomes a calm, watchful exercise guide—helping every
+            movement feel safer, clearer, and connected to real clinical care.
+          </p>
+          <div class="hero-actions">
+            <button class="button button-coral" type="button" data-open="plan-modal">
+              Build my recovery plan
+              <span aria-hidden="true">↗</span>
+            </button>
+            <a class="round-link" href="#practice" aria-label="Try the live exercise guide">
+              <span>Try it live</span>
+              <span class="round-link-icon" aria-hidden="true">↓</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-label="Illustration of AI movement tracking at home">
+          <div class="hero-room">
+            <div class="room-window">
+              <span class="sun"></span>
+              <span class="land land-one"></span>
+              <span class="land land-two"></span>
+            </div>
+            <div class="room-plant" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="phone-stand" aria-hidden="true">
+              <div class="phone-screen">
+                <span class="phone-person"></span>
+              </div>
+              <span class="stand-line"></span>
+            </div>
+            <svg class="tracked-person" viewBox="0 0 340 520" role="img" aria-label="Person performing a supported half squat">
+              <defs>
+                <linearGradient id="shirtGradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#ff7757"/>
+                  <stop offset="100%" stop-color="#e64b2d"/>
+                </linearGradient>
+              </defs>
+              <g class="chair">
+                <path d="M224 269 L290 269 L290 459" />
+                <path d="M237 270 L237 451 M290 350 L237 350" />
+              </g>
+              <g class="person-fill">
+                <circle cx="174" cy="107" r="42" class="skin" />
+                <path d="M137 87 Q149 54 181 62 Q209 68 214 100 Q198 89 180 91 Q157 96 137 87Z" class="hair" />
+                <path d="M143 154 Q177 137 210 161 L226 278 Q181 299 130 270Z" class="shirt" />
+                <path d="M145 270 Q176 277 218 272 L235 344 L182 355 L135 327Z" class="pants" />
+                <path d="M140 180 Q116 203 105 247 L127 253 L160 210Z" class="skin limb" />
+                <path d="M207 178 Q233 208 250 247 L232 257 L190 215Z" class="skin limb" />
+                <path d="M105 247 Q103 270 129 281 L143 266 L127 253Z" class="skin limb" />
+                <path d="M250 247 Q264 263 278 258 L279 276 Q248 282 232 257Z" class="skin limb" />
+                <path d="M151 326 Q126 365 120 420 L153 426 L191 350Z" class="pants limb" />
+                <path d="M203 346 Q222 382 247 420 L276 405 L235 344Z" class="pants limb" />
+                <path d="M120 420 L116 474 L150 474 L153 426Z" class="skin limb" />
+                <path d="M247 420 L268 466 L299 450 L276 405Z" class="skin limb" />
+                <path d="M113 470 Q136 464 155 476 L154 491 L108 491Z" class="shoe" />
+                <path d="M265 462 Q287 445 304 449 L311 463 L274 483Z" class="shoe" />
+              </g>
+              <g class="pose-lines">
+                <path d="M175 107 L176 173 L176 235 L174 290" />
+                <path d="M176 175 L132 197 L112 252 L133 272" />
+                <path d="M176 175 L216 198 L244 251 L278 268" />
+                <path d="M174 290 L157 335 L136 423 L134 476" />
+                <path d="M174 290 L218 341 L260 415 L283 466" />
+              </g>
+              <g class="pose-points">
+                <circle cx="175" cy="107" r="7" />
+                <circle cx="176" cy="175" r="7" />
+                <circle cx="132" cy="197" r="7" />
+                <circle cx="112" cy="252" r="7" />
+                <circle cx="133" cy="272" r="7" />
+                <circle cx="216" cy="198" r="7" />
+                <circle cx="244" cy="251" r="7" />
+                <circle cx="278" cy="268" r="7" />
+                <circle cx="174" cy="290" r="7" />
+                <circle cx="157" cy="335" r="7" />
+                <circle cx="136" cy="423" r="7" />
+                <circle cx="134" cy="476" r="7" />
+                <circle cx="218" cy="341" r="7" />
+                <circle cx="260" cy="415" r="7" />
+                <circle cx="283" cy="466" r="7" />
+              </g>
+            </svg>
+            <div class="tracking-card tracking-card-top">
+              <span class="tracking-icon tracking-icon-good">✓</span>
+              <span><strong>Great alignment</strong>Knees tracking evenly</span>
+            </div>
+            <div class="tracking-card tracking-card-bottom">
+              <span class="tracking-icon">↗</span>
+              <span><strong>Rep 6 of 10</strong>Slow and steady</span>
+            </div>
+          </div>
+          <div class="hero-index" aria-hidden="true">01 / 04</div>
+        </div>
       </div>
-    </div>
-
-    <aside class="panel">
-
-      <!-- Controls -->
-      <div class="control-row">
-        <label for="exerciseSelect">Exercise</label>
-        <select id="exerciseSelect"></select>
+      <div class="hero-bottom">
+        <p>Designed for independent, low-risk home exercise</p>
+        <div class="trust-row" aria-label="Key product qualities">
+          <span>On-device pose tracking</span>
+          <span>Clinician connected</span>
+          <span>Privacy first</span>
+        </div>
       </div>
-      <div class="control-row">
-        <label for="sideSelect">Affected side</label>
-        <select id="sideSelect">
-          <option value="right">Right</option>
-          <option value="left">Left</option>
-        </select>
+    </section>
+
+    <section class="manifesto" id="how-it-works">
+      <div class="section-kicker">
+        <span>01</span>
+        <span>Care that moves with you</span>
+      </div>
+      <div class="manifesto-grid">
+        <h2>From uncertainty<br />to <em>confident movement.</em></h2>
+        <div class="manifesto-copy">
+          <p>
+            PhysioVision turns the phone already in your home into an intelligent
+            movement companion. No wearables. No complicated setup.
+          </p>
+          <p>
+            It watches joint alignment, counts repetitions, and gives one clear
+            cue at a time—then shares meaningful trends with your physiotherapist.
+          </p>
+          <a class="arrow-link" href="#practice">
+            See the exercise experience <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="journey-section">
+      <div class="section-heading">
+        <p class="eyebrow">One connected care loop</p>
+        <h2>Simple at home.<br />Insightful in clinic.</h2>
       </div>
 
-      <button id="toggle" disabled>Start camera</button>
+      <div class="journey-grid">
+        <article class="journey-card journey-card-coral">
+          <span class="journey-number">01</span>
+          <div class="journey-icon icon-profile" aria-hidden="true">
+            <span></span>
+          </div>
+          <div>
+            <h3>Tell us what matters</h3>
+            <p>
+              Choose a goal and add age, height, weight, mobility level, and
+              relevant medical history.
+            </p>
+          </div>
+        </article>
+        <article class="journey-card journey-card-cream">
+          <span class="journey-number">02</span>
+          <div class="journey-icon icon-plan" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div>
+            <h3>Receive a personal plan</h3>
+            <p>
+              The AI proposes a gradual routine for low-risk users, with clear
+              reasons and adjustable intensity.
+            </p>
+          </div>
+        </article>
+        <article class="journey-card journey-card-mint">
+          <span class="journey-number">03</span>
+          <div class="journey-icon icon-camera" aria-hidden="true">
+            <span></span>
+          </div>
+          <div>
+            <h3>Move with live guidance</h3>
+            <p>
+              The camera checks form in real time and responds with large visual
+              cues and optional voice coaching.
+            </p>
+          </div>
+        </article>
+        <article class="journey-card journey-card-dark">
+          <span class="journey-number">04</span>
+          <div class="journey-icon icon-care" aria-hidden="true">
+            <span></span><span></span>
+          </div>
+          <div>
+            <h3>Escalate when it matters</h3>
+            <p>
+              Worsening trends prompt a therapist review, online consultation,
+              and a safer adjusted plan.
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
 
-      <!-- Tracking warning (shown for exercises with occlusion risk) -->
-      <div id="trackingWarning" class="tracking-warning hidden"></div>
-
-      <!-- Prescription -->
-      <div id="prescription" class="prescription"></div>
-
-      <!-- Rep counter + inline hold timer -->
-      <div class="rep-block">
+    <section class="practice-section" id="practice">
+      <div class="section-kicker section-kicker-light">
+        <span>02</span>
+        <span>Live exercise guide</span>
+      </div>
+      <div class="practice-heading">
         <div>
-          <span id="repCount" class="rep-count">0</span>
-          <span class="rep-label">reps</span>
+          <p class="eyebrow eyebrow-light">Today’s session · about 12 minutes</p>
+          <h2>Your movement.<br /><em>Clearly guided.</em></h2>
         </div>
-        <div id="holdInline" class="hold-inline hidden">
-          <span id="holdInlineCountdown">45</span>
-          <span class="hold-inline-unit">s</span>
+        <div class="session-readiness">
+          <span class="readiness-check">✓</span>
+          <p><strong>Ready when you are</strong>Clear 2–3 metres of space</p>
         </div>
       </div>
 
-      <!-- Phase flow: STANDING → [ SQUAT ] → STANDING -->
-      <div id="phaseFlow" class="phase-flow"></div>
+      <div class="practice-app">
+        <div class="camera-column">
+          <div class="stage" id="cameraStage">
+            <video id="webcam" autoplay playsinline muted></video>
+            <canvas id="overlay"></canvas>
+            <div class="camera-placeholder" id="cameraPlaceholder">
+              <div class="position-guide" aria-hidden="true">
+                <span class="guide-head"></span>
+                <span class="guide-body"></span>
+                <span class="guide-arm guide-arm-left"></span>
+                <span class="guide-arm guide-arm-right"></span>
+                <span class="guide-leg guide-leg-left"></span>
+                <span class="guide-leg guide-leg-right"></span>
+              </div>
+              <p><strong>Stand where your full body fits</strong>Face your phone and keep a chair nearby</p>
+            </div>
+            <div class="camera-topbar">
+              <div id="status" class="status" role="status" aria-live="polite">
+                Preparing movement guide…
+              </div>
+              <button class="sound-toggle" type="button" id="soundToggle" aria-pressed="true">
+                <span aria-hidden="true">◖))</span> Voice on
+              </button>
+            </div>
+            <div class="setup-tip">
+              Phone at chest height · 2–3 m away · Full body visible
+            </div>
+          </div>
 
-      <!-- Progress toward next phase (strengthening) -->
-      <div id="progressSection">
-        <div class="progress-wrap">
-          <div id="progressFill" class="progress-fill"></div>
+          <div class="camera-safety">
+            <span aria-hidden="true">✦</span>
+            <p>
+              Your camera feed is processed for movement guidance and is not
+              recorded in this prototype.
+            </p>
+          </div>
         </div>
-        <p class="progress-label" id="progressLabel">Position yourself to start</p>
-      </div>
 
-      <!-- Hold progress bar (stretches only) -->
-      <div id="holdTimerSection" class="hidden">
-        <div class="progress-wrap">
-          <div id="holdProgressFill" class="progress-fill hold-progress"></div>
+        <aside class="panel">
+          <div class="panel-step">
+            <span>Exercise 1 of 3</span>
+            <span>Today</span>
+          </div>
+          <div class="control-row">
+            <label for="exerciseSelect">Choose exercise</label>
+            <select id="exerciseSelect"></select>
+          </div>
+          <div class="side-and-dose">
+            <div class="control-row">
+              <label for="sideSelect">Focus side</label>
+              <select id="sideSelect">
+                <option value="right">Right side</option>
+                <option value="left">Left side</option>
+              </select>
+            </div>
+            <div class="dose-card">
+              <span>Plan</span>
+              <strong id="prescription"></strong>
+            </div>
+          </div>
+
+          <div class="rep-row">
+            <div class="rep-block">
+              <span id="repCount" class="rep-count">0</span>
+              <span class="rep-label">reps</span>
+            </div>
+            <div id="holdInline" class="hold-inline hidden" aria-live="polite">
+              <span id="holdInlineCountdown">45</span>
+              <span class="hold-inline-unit">seconds hold</span>
+            </div>
+            <div class="rep-goal">
+              <span>Goal</span>
+              <strong id="repTarget">10</strong>
+            </div>
+          </div>
+
+          <div id="feedbackBanner" class="feedback-banner is-ready" aria-live="polite">
+            <span class="feedback-symbol">●</span>
+            <div>
+              <strong>Get into position</strong>
+              <span>Your guidance will appear here</span>
+            </div>
+          </div>
+
+          <div id="phaseFlow" class="phase-flow" aria-label="Exercise phases"></div>
+          <div id="progressSection">
+            <div class="progress-wrap" aria-hidden="true">
+              <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <p class="progress-label" id="progressLabel">Position yourself to start</p>
+          </div>
+          <div id="holdTimerSection" class="hidden">
+            <div class="progress-wrap" aria-hidden="true">
+              <div id="holdProgressFill" class="progress-fill hold-progress"></div>
+            </div>
+            <p class="progress-label">Hold this position steadily</p>
+          </div>
+
+          <ul id="cueList" class="cue-list" aria-label="Live coaching cues"></ul>
+          <div id="symWarning" class="sym-warning hidden"></div>
+          <div id="trackingWarning" class="tracking-warning hidden"></div>
+
+          <button id="toggle" class="button button-coral camera-button" disabled>
+            Start camera guide
+            <span aria-hidden="true">→</span>
+          </button>
+
+          <details class="metrics">
+            <summary>Technical movement details</summary>
+            <ul id="angleList">
+              <li><span>Left knee</span><b data-angle="leftKnee">—</b></li>
+              <li><span>Right knee</span><b data-angle="rightKnee">—</b></li>
+              <li><span>Left hip</span><b data-angle="leftHip">—</b></li>
+              <li><span>Right hip</span><b data-angle="rightHip">—</b></li>
+              <li><span>Left ankle</span><b data-angle="leftAnkle">—</b></li>
+              <li><span>Right ankle</span><b data-angle="rightAnkle">—</b></li>
+              <li><span>Left foot incline</span><b data-angle="leftFootInclination">—</b></li>
+              <li><span>Right foot incline</span><b data-angle="rightFootInclination">—</b></li>
+              <li><span>Left elbow</span><b data-angle="leftElbow">—</b></li>
+              <li><span>Right elbow</span><b data-angle="rightElbow">—</b></li>
+            </ul>
+            <ul id="symList">
+              <li><span>Knee L/R difference</span><b data-sym="knee">—</b></li>
+              <li><span>Elbow L/R difference</span><b data-sym="elbow">—</b></li>
+            </ul>
+            <p class="fps">Tracking speed: <b id="fps">—</b> FPS</p>
+          </details>
+        </aside>
+      </div>
+      <div class="pose-strip" id="poseStrip" aria-label="Exercise phase guide"></div>
+    </section>
+
+    <section class="progress-section" id="care-team">
+      <div class="section-kicker">
+        <span>03</span>
+        <span>Progress with a safety net</span>
+      </div>
+      <div class="progress-layout">
+        <div class="progress-story">
+          <p class="eyebrow">When trends change, care responds</p>
+          <h2>AI sees the pattern.<br /><em>People make the call.</em></h2>
+          <p class="large-copy">
+            Your physiotherapist sees progress—not hours of video. They can
+            review completion, movement quality, pain check-ins, and recurring
+            difficulty, then adjust the plan remotely.
+          </p>
+          <div class="care-actions">
+            <button class="button button-dark" type="button" data-open="booking-modal">
+              Book a video consultation
+              <span aria-hidden="true">↗</span>
+            </button>
+            <button class="text-link" type="button" data-open="therapist-view">
+              Preview therapist dashboard →
+            </button>
+          </div>
         </div>
-        <p class="progress-label">Hold the stretch</p>
+
+        <div class="dashboard-preview">
+          <div class="dashboard-top">
+            <div>
+              <span class="dashboard-label">Patient progress</span>
+              <h3>Good afternoon, Mrs. Lee</h3>
+            </div>
+            <span class="status-pill status-pill-review">Review suggested</span>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric-card">
+              <span>Plan adherence</span>
+              <strong>86<small>%</small></strong>
+              <em class="trend-up">↑ 8% this week</em>
+            </div>
+            <div class="metric-card">
+              <span>Movement quality</span>
+              <strong>78<small>/100</small></strong>
+              <em class="trend-down">↓ 5 pts</em>
+            </div>
+            <div class="metric-card">
+              <span>Pain check-in</span>
+              <strong>3<small>/10</small></strong>
+              <em>stable</em>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-title">
+              <div>
+                <span>Movement quality</span>
+                <strong>Last 7 sessions</strong>
+              </div>
+              <span class="chart-legend"><i></i> Quality score</span>
+            </div>
+            <svg viewBox="0 0 620 220" role="img" aria-label="Movement quality trend declining over seven sessions">
+              <defs>
+                <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ef5a3c" stop-opacity=".28"/>
+                  <stop offset="100%" stop-color="#ef5a3c" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <g class="chart-grid">
+                <line x1="42" x2="590" y1="44" y2="44"/>
+                <line x1="42" x2="590" y1="94" y2="94"/>
+                <line x1="42" x2="590" y1="144" y2="144"/>
+                <line x1="42" x2="590" y1="194" y2="194"/>
+              </g>
+              <path class="chart-area" d="M45 93 C91 88 117 67 154 72 S219 85 260 79 S322 101 362 98 S417 119 456 115 S528 144 584 137 L584 195 L45 195Z"/>
+              <path class="chart-line" d="M45 93 C91 88 117 67 154 72 S219 85 260 79 S322 101 362 98 S417 119 456 115 S528 144 584 137"/>
+              <g class="chart-points">
+                <circle cx="45" cy="93" r="5"/><circle cx="154" cy="72" r="5"/>
+                <circle cx="260" cy="79" r="5"/><circle cx="362" cy="98" r="5"/>
+                <circle cx="456" cy="115" r="5"/><circle cx="584" cy="137" r="7"/>
+              </g>
+            </svg>
+            <div class="chart-note">
+              <span class="alert-mark">!</span>
+              <p>
+                <strong>Repeated knee asymmetry detected</strong>
+                Consider reviewing half-squat depth and right-side load.
+              </p>
+              <button type="button" data-open="booking-modal">Review</button>
+            </div>
+          </div>
+        </div>
       </div>
+    </section>
 
-      <!-- Coaching cues -->
-      <ul id="cueList" class="cue-list"></ul>
-
-      <!-- Symmetry warning -->
-      <div id="symWarning" class="sym-warning hidden"></div>
-
-      <!-- Debug angles (collapsed by default) -->
-      <details class="metrics">
-        <summary>Joint angles</summary>
-        <ul id="angleList">
-          <li><span>Left knee</span><b data-angle="leftKnee">—</b></li>
-          <li><span>Right knee</span><b data-angle="rightKnee">—</b></li>
-          <li><span>Left hip</span><b data-angle="leftHip">—</b></li>
-          <li><span>Right hip</span><b data-angle="rightHip">—</b></li>
-          <li><span>Left ankle</span><b data-angle="leftAnkle">—</b></li>
-          <li><span>Right ankle</span><b data-angle="rightAnkle">—</b></li>
-          <li><span>Left foot incline</span><b data-angle="leftFootInclination">—</b></li>
-          <li><span>Right foot incline</span><b data-angle="rightFootInclination">—</b></li>
-          <li><span>Left elbow</span><b data-angle="leftElbow">—</b></li>
-          <li><span>Right elbow</span><b data-angle="rightElbow">—</b></li>
+    <section class="safety-section" id="safety">
+      <div class="safety-orbit" aria-hidden="true">
+        <span class="orbit orbit-one"></span>
+        <span class="orbit orbit-two"></span>
+        <span class="orbit-dot"></span>
+        <span class="safety-shield">+</span>
+      </div>
+      <div class="safety-content">
+        <p class="eyebrow eyebrow-light">Safe by design</p>
+        <h2>Technology guides.<br /><em>Clinicians decide.</em></h2>
+        <p>
+          PhysioVision is designed for low-risk adults completing approved or
+          general mobility exercises. It does not diagnose conditions or replace
+          an assessment by a qualified health professional.
+        </p>
+        <ul>
+          <li><span>01</span>Stop guidance for pain, dizziness, or instability</li>
+          <li><span>02</span>Human review before meaningful programme changes</li>
+          <li><span>03</span>Minimal data collection with clear consent</li>
         </ul>
-        <ul id="symList">
-          <li><span>Knee L/R diff</span><b data-sym="knee">—</b></li>
-          <li><span>Elbow L/R diff</span><b data-sym="elbow">—</b></li>
-        </ul>
-        <p class="fps">FPS: <b id="fps">—</b></p>
-      </details>
+      </div>
+    </section>
 
-    </aside>
+    <section class="final-cta">
+      <p class="eyebrow">A stronger next step</p>
+      <h2>Meet the guide that<br />moves <em>with you.</em></h2>
+      <button class="button button-coral" type="button" data-open="plan-modal">
+        Create your first plan
+        <span aria-hidden="true">↗</span>
+      </button>
+      <div class="cta-rings" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+    </section>
   </main>
 
-  <!-- Phase illustration strip -->
-  <section class="pose-strip" id="poseStrip"></section>
+  <footer class="site-footer">
+    <div class="footer-main">
+      <a class="brand brand-footer" href="#top">
+        <span class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </span>
+        <span>PhysioVision</span>
+      </a>
+      <p>Move confidently at home.<br />Stay connected to care.</p>
+      <div class="footer-links">
+        <div><span>Explore</span><a href="#how-it-works">How it works</a><a href="#practice">Exercise guide</a></div>
+        <div><span>Care</span><a href="#care-team">For therapists</a><a href="#safety">Safety</a></div>
+        <div><span>Hackathon</span><a href="https://github.com/brandonyeo0611-gif/PhysioVision" target="_blank" rel="noreferrer">GitHub ↗</a></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 PhysioVision · Tencent Age Well Hackathon prototype</span>
+      <span>Not a medical device · For demonstration only</span>
+    </div>
+  </footer>
 
-  <script type="module" src="main.js?v=5"></script>
+  <div class="modal-shell" id="plan-modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <section class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="plan-title">
+      <button class="modal-close" type="button" data-close-modal aria-label="Close">×</button>
+      <div class="modal-progress">
+        <span class="active"></span><span></span><span></span>
+      </div>
+
+      <form id="planForm">
+        <div class="form-step active" data-step="1">
+          <p class="eyebrow">Step 1 of 3</p>
+          <h2 id="plan-title">What would you like to improve?</h2>
+          <p class="form-intro">Choose the goal that matters most right now.</p>
+          <div class="goal-options">
+            <label class="choice-card">
+              <input type="radio" name="goal" value="Stronger knees" checked />
+              <span class="choice-icon">↗</span>
+              <span><strong>Stronger knees</strong>Build strength for stairs and standing</span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="goal" value="Better balance" />
+              <span class="choice-icon">⌁</span>
+              <span><strong>Better balance</strong>Feel steadier during daily movement</span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="goal" value="Move with less stiffness" />
+              <span class="choice-icon">○</span>
+              <span><strong>Move with less stiffness</strong>Improve comfortable range of motion</span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="goal" value="Stay active" />
+              <span class="choice-icon">✦</span>
+              <span><strong>Stay active</strong>Create a gentle weekly routine</span>
+            </label>
+          </div>
+          <button class="button button-dark modal-next" type="button" data-next-step>
+            Continue <span aria-hidden="true">→</span>
+          </button>
+        </div>
+
+        <div class="form-step" data-step="2">
+          <p class="eyebrow">Step 2 of 3</p>
+          <h2>Help us fit the plan to you.</h2>
+          <p class="form-intro">This information shapes exercise intensity and safety checks.</p>
+          <div class="field-grid">
+            <label>
+              <span>Age</span>
+              <input type="number" name="age" value="68" min="50" max="100" required />
+              <em>years</em>
+            </label>
+            <label>
+              <span>Height</span>
+              <input type="number" name="height" value="163" min="120" max="220" required />
+              <em>cm</em>
+            </label>
+            <label>
+              <span>Weight</span>
+              <input type="number" name="weight" value="62" min="30" max="250" required />
+              <em>kg</em>
+            </label>
+            <label>
+              <span>Current activity</span>
+              <select name="activity">
+                <option>Lightly active</option>
+                <option>Mostly seated</option>
+                <option>Active most days</option>
+              </select>
+            </label>
+          </div>
+          <label class="history-field">
+            <span>Relevant medical or injury history</span>
+            <textarea name="history" rows="3" placeholder="For example: knee surgery, falls, heart condition, or none"></textarea>
+          </label>
+          <label class="check-row">
+            <input type="checkbox" name="lowRisk" required />
+            <span>
+              I understand this self-guided plan is for low-risk exercise and I
+              should seek professional advice if I have a health concern.
+            </span>
+          </label>
+          <div class="modal-actions">
+            <button class="text-link" type="button" data-prev-step>← Back</button>
+            <button class="button button-dark" type="button" data-next-step>
+              Create my plan <span aria-hidden="true">✦</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-step" data-step="3">
+          <div class="plan-created-icon" aria-hidden="true">✓</div>
+          <p class="eyebrow">Your starting plan</p>
+          <h2>Three gentle sessions.<br />One clear goal.</h2>
+          <p class="form-intro" id="planSummary">
+            Based on your profile, we’ve created a gradual knee-strength routine.
+          </p>
+          <div class="generated-plan">
+            <div class="generated-day">
+              <span>Mon</span>
+              <div><strong>Strength & control</strong><small>Half squats · Leg extensions</small></div>
+              <em>12 min</em>
+            </div>
+            <div class="generated-day">
+              <span>Wed</span>
+              <div><strong>Mobility & balance</strong><small>Heel stretch · Calf raises</small></div>
+              <em>10 min</em>
+            </div>
+            <div class="generated-day">
+              <span>Sat</span>
+              <div><strong>Strength & confidence</strong><small>Leg curls · Half squats</small></div>
+              <em>14 min</em>
+            </div>
+          </div>
+          <div class="plan-note">
+            <span>i</span>
+            <p>A clinician should review this plan before use if you reported a medical condition or recent injury.</p>
+          </div>
+          <button class="button button-coral full-button" type="button" data-start-plan>
+            Start my first session <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-shell" id="booking-modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <section class="modal booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-title">
+      <button class="modal-close" type="button" data-close-modal aria-label="Close">×</button>
+      <p class="eyebrow">Online consultation</p>
+      <h2 id="booking-title">Choose a time with<br />your physiotherapist.</h2>
+      <div class="therapist-summary">
+        <div class="avatar avatar-mei">ML</div>
+        <div><strong>Mei Lin, PT</strong><span>Musculoskeletal physiotherapist · 12 years</span></div>
+        <span class="status-pill">Available this week</span>
+      </div>
+      <div class="booking-columns">
+        <div>
+          <span class="field-label">Select day</span>
+          <div class="date-options">
+            <button type="button"><span>Tue</span><strong>21</strong></button>
+            <button type="button" class="selected"><span>Wed</span><strong>22</strong></button>
+            <button type="button"><span>Thu</span><strong>23</strong></button>
+            <button type="button"><span>Fri</span><strong>24</strong></button>
+          </div>
+        </div>
+        <div>
+          <span class="field-label">Select time</span>
+          <div class="time-options">
+            <button type="button">09:30</button>
+            <button type="button" class="selected">11:00</button>
+            <button type="button">14:30</button>
+            <button type="button">16:00</button>
+          </div>
+        </div>
+      </div>
+      <label class="booking-reason">
+        <span>What would you like to discuss?</span>
+        <textarea rows="2" placeholder="Optional note for your physiotherapist">My right knee feels less stable during half squats.</textarea>
+      </label>
+      <button class="button button-coral full-button" type="button" id="confirmBooking">
+        Confirm video consultation <span aria-hidden="true">→</span>
+      </button>
+      <p class="booking-footnote">Prototype booking—no payment or real appointment will be made.</p>
+    </section>
+  </div>
+
+  <div class="modal-shell" id="therapist-view" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <section class="modal therapist-modal" role="dialog" aria-modal="true" aria-labelledby="therapist-title">
+      <button class="modal-close modal-close-light" type="button" data-close-modal aria-label="Close">×</button>
+      <aside class="therapist-sidebar">
+        <a class="brand brand-footer" href="#top">
+          <span class="brand-mark"><span></span><span></span><span></span></span>
+          <span>PhysioVision</span>
+        </a>
+        <nav>
+          <button class="active" type="button"><span>⌂</span> Overview</button>
+          <button type="button"><span>◎</span> Patients</button>
+          <button type="button"><span>□</span> Programmes</button>
+          <button type="button"><span>◷</span> Consultations</button>
+        </nav>
+        <div class="clinician-profile">
+          <div class="avatar avatar-mei">ML</div>
+          <div><strong>Mei Lin</strong><span>Physiotherapist</span></div>
+        </div>
+      </aside>
+      <div class="therapist-content">
+        <div class="therapist-heading">
+          <div>
+            <p class="eyebrow">Monday, 20 July</p>
+            <h2 id="therapist-title">Patient overview</h2>
+          </div>
+          <button class="button button-dark button-small" type="button" data-close-modal>
+            Exit dashboard
+          </button>
+        </div>
+        <div class="clinician-stats">
+          <div><span>Active patients</span><strong>24</strong><em>3 new this month</em></div>
+          <div><span>Need review</span><strong>4</strong><em class="attention">2 high priority</em></div>
+          <div><span>Adherence</span><strong>82%</strong><em>↑ 6% this month</em></div>
+        </div>
+        <div class="patient-table-wrap">
+          <div class="table-heading">
+            <div><strong>Patients needing attention</strong><span>AI-prioritised from recent trends</span></div>
+            <button type="button">View all patients →</button>
+          </div>
+          <div class="patient-row patient-row-head">
+            <span>Patient</span><span>Programme</span><span>Last session</span><span>Trend</span><span>Status</span>
+          </div>
+          <div class="patient-row">
+            <span class="patient-name"><i class="avatar avatar-lee">SL</i><span><strong>Sarah Lee</strong><small>68 · Knee strength</small></span></span>
+            <span>Week 3 of 6</span><span>Today</span><span class="mini-trend trend-falling">⌁</span>
+            <span><button class="status-pill status-pill-review" type="button">Review now</button></span>
+          </div>
+          <div class="patient-row">
+            <span class="patient-name"><i class="avatar avatar-chan">PC</i><span><strong>Peter Chan</strong><small>74 · Balance</small></span></span>
+            <span>Week 2 of 8</span><span>Yesterday</span><span class="mini-trend trend-flat">—</span>
+            <span><button class="status-pill status-pill-watch" type="button">Monitor</button></span>
+          </div>
+          <div class="patient-row">
+            <span class="patient-name"><i class="avatar avatar-wong">AW</i><span><strong>Anna Wong</strong><small>71 · Hip mobility</small></span></span>
+            <span>Week 5 of 6</span><span>2 days ago</span><span class="mini-trend trend-rising">↗</span>
+            <span><button class="status-pill status-pill-good" type="button">On track</button></span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span>✓</span>
+    <p><strong>Consultation reserved</strong>Wednesday 22 July at 11:00 with Mei Lin</p>
+  </div>
+
+  <script src="ui.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
