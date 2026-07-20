@@ -9,7 +9,7 @@
 <body>
   <header>
     <h1>PhysioVision</h1>
-    <p class="subtitle">AI-powered physiotherapy assistant</p>
+    <p class="subtitle">AI-powered physiotherapy assistant · v2</p>
   </header>
 
   <main>
@@ -45,20 +45,36 @@
       <!-- Prescription -->
       <div id="prescription" class="prescription"></div>
 
-      <!-- Rep counter -->
+      <!-- Rep counter + inline hold timer -->
       <div class="rep-block">
-        <span id="repCount" class="rep-count">0</span>
-        <span class="rep-label">reps</span>
+        <div>
+          <span id="repCount" class="rep-count">0</span>
+          <span class="rep-label">reps</span>
+        </div>
+        <div id="holdInline" class="hold-inline hidden">
+          <span id="holdInlineCountdown">45</span>
+          <span class="hold-inline-unit">s</span>
+        </div>
       </div>
 
       <!-- Phase flow: STANDING → [ SQUAT ] → STANDING -->
       <div id="phaseFlow" class="phase-flow"></div>
 
-      <!-- Progress toward next phase -->
-      <div class="progress-wrap">
-        <div id="progressFill" class="progress-fill"></div>
+      <!-- Progress toward next phase (strengthening) -->
+      <div id="progressSection">
+        <div class="progress-wrap">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <p class="progress-label" id="progressLabel">Position yourself to start</p>
       </div>
-      <p class="progress-label" id="progressLabel">Position yourself to start</p>
+
+      <!-- Hold progress bar (stretches only) -->
+      <div id="holdTimerSection" class="hidden">
+        <div class="progress-wrap">
+          <div id="holdProgressFill" class="progress-fill hold-progress"></div>
+        </div>
+        <p class="progress-label">Hold the stretch</p>
+      </div>
 
       <!-- Coaching cues -->
       <ul id="cueList" class="cue-list"></ul>
@@ -76,6 +92,8 @@
           <li><span>Right hip</span><b data-angle="rightHip">—</b></li>
           <li><span>Left ankle</span><b data-angle="leftAnkle">—</b></li>
           <li><span>Right ankle</span><b data-angle="rightAnkle">—</b></li>
+          <li><span>Left foot incline</span><b data-angle="leftFootInclination">—</b></li>
+          <li><span>Right foot incline</span><b data-angle="rightFootInclination">—</b></li>
           <li><span>Left elbow</span><b data-angle="leftElbow">—</b></li>
           <li><span>Right elbow</span><b data-angle="rightElbow">—</b></li>
         </ul>
@@ -89,6 +107,9 @@
     </aside>
   </main>
 
-  <script type="module" src="main.js"></script>
+  <!-- Phase illustration strip -->
+  <section class="pose-strip" id="poseStrip"></section>
+
+  <script type="module" src="main.js?v=5"></script>
 </body>
 </html>

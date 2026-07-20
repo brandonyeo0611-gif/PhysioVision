@@ -88,9 +88,12 @@ const JOINTS = {
   rightElbow: ["rightShoulder","rightElbow", "rightWrist"],
   leftHip:    ["leftShoulder", "leftHip",    "leftKnee"],
   rightHip:   ["rightShoulder","rightHip",   "rightKnee"],
-  // ~90° neutral standing; >90° plantarflexed (tiptoe), <85° dorsiflexed (calf stretch)
+  // Ankle: ~90° neutral standing; >90° plantarflexed (tiptoe), <85° dorsiflexed (calf stretch)
   leftAnkle:  ["leftKnee",  "leftAnkle",  "leftFootIndex"],
   rightAnkle: ["rightKnee", "rightAnkle", "rightFootIndex"],
+  // Heel angle (vertex AT heel between knee and toe): opens as heel rises
+  leftHeelAngle:  ["leftKnee",  "leftHeel",  "leftFootIndex"],
+  rightHeelAngle: ["rightKnee", "rightHeel", "rightFootIndex"],
 };
 
 /**
@@ -102,17 +105,40 @@ const JOINTS = {
  */
 export function jointAngles(lm, visLm = lm, threshold = VISIBILITY_THRESHOLD) {
   const result = {};
+
+  // Standard 3-point joint angles
   for (const [name, [ka, kb, kc]] of Object.entries(JOINTS)) {
-    const a = angleWithConfidence(
-      lm[LM[ka]], lm[LM[kb]], lm[LM[kc]],
-      [ka, kb, kc],
-      threshold
-    );
-    // Re-check confidence against the landmarks that actually carry visibility.
     const weak = [ka, kb, kc].filter((k) => !isVisible(visLm[LM[k]], threshold));
     result[name] = weak.length > 0
       ? { value: NaN, lowConfidence: true, weakPoints: weak }
       : { value: angle(lm[LM[ka]], lm[LM[kb]], lm[LM[kc]]), lowConfidence: false, weakPoints: [] };
   }
+
+  // Foot inclination: angle the foot makes with the horizontal floor plane, measured at the heel.
+  // 0° = foot flat; increases as heel rises (calf raise). Uses world Y-up coordinates.
+  for (const [side, hKey, tKey] of [
+    ["left",  "leftHeel",  "leftFootIndex"],
+    ["right", "rightHeel", "rightFootIndex"],
+  ]) {
+    const name = `${side}FootInclination`;
+    const weakPts = [hKey, tKey].filter((k) => !isVisible(visLm[LM[k]], threshold));
+    if (weakPts.length > 0) {
+      result[name] = { value: NaN, lowConfidence: true, weakPoints: weakPts };
+    } else {
+      result[name] = { value: _footInclination(lm[LM[hKey]], lm[LM[tKey]]), lowConfidence: false, weakPoints: [] };
+    }
+  }
+
   return result;
+}
+
+// Degrees the foot is inclined above horizontal: 0° when flat, ~20–40° on tiptoe.
+function _footInclination(heel, toe) {
+  const dx = toe.x - heel.x;
+  const dz = (toe.z ?? 0) - (heel.z ?? 0);
+  const horizontalDist = Math.sqrt(dx * dx + dz * dz);
+  if (horizontalDist === 0) return NaN;
+  // In world coords Y is up; heel.y > toe.y when heel is raised
+  const elevation = (heel.y ?? 0) - (toe.y ?? 0);
+  return (Math.atan2(Math.max(0, elevation), horizontalDist) * 180) / Math.PI;
 }

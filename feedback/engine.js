@@ -18,6 +18,7 @@ export class FeedbackEngine {
     this.stageIdx = 0;
     this.currentPhase = this.stages[0];
     this.repCount = 0;
+    this.inHold = false; // true while user is holding a stretch position
   }
 
   changeExercise(exerciseId, affectedSide) {
@@ -27,16 +28,27 @@ export class FeedbackEngine {
   update(angles) {
     const detected = this._detectPhase(angles);
 
-    // see if the phase is detected, then move to the next phase
-    if (detected !== null && detected !== this.currentPhase) {
+    if (this.inHold) {
+      // Only cancel if clearly in a different named phase — ignore null (low-confidence / mid-transition)
+      if (detected !== null && detected !== this.currentPhase) {
+        this.inHold = false;
+        this.stageIdx = 0;
+        this.currentPhase = this.stages[0];
+      }
+    } else if (detected !== null && detected !== this.currentPhase) {
       const nextStage = this.stages[this.stageIdx + 1];
       if (detected === nextStage) {
         this.stageIdx++;
         this.currentPhase = detected;
         if (this.stageIdx >= this.stages.length - 1) {
-          this.repCount++;
-          this.stageIdx = 0;
-          this.currentPhase = this.stages[0];
+          if (this.exercise.category === "stretch") {
+            // Don't count yet — wait for hold timer to complete
+            this.inHold = true;
+          } else {
+            this.repCount++;
+            this.stageIdx = 0;
+            this.currentPhase = this.stages[0];
+          }
         }
       }
     }
@@ -46,10 +58,19 @@ export class FeedbackEngine {
       stages: this.stages,
       phase: this.currentPhase,
       repCount: this.repCount,
+      inHold: this.inHold,
       progress: this._progressToNext(angles),
       cues: this._evaluateCues(angles),
       symmetryWarning: this._checkSymmetry(angles),
     };
+  }
+
+  // Called by main.js when the hold countdown reaches zero
+  completeHold() {
+    this.repCount++;
+    this.inHold = false;
+    this.stageIdx = 0;
+    this.currentPhase = this.stages[0];
   }
 
   // ── Private ──────────────────────────────────────────────────────────────

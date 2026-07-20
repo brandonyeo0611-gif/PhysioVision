@@ -38,12 +38,13 @@ export const EXERCISES = [
       ankle: { points: ["knee", "ankle", "footIndex"], side: "affected" },
     },
     phases: [
-      { name: "neutral", ankle: [85, 100] },
-      { name: "stretch",  ankle: [65, 85] },   // dorsiflexion pulls angle below 85°
+      { name: "neutral", ankle: [88, 115] },
+      { name: "stretch",  ankle: [50, 87] },   // no overlap with neutral — frontal depth inference is imprecise
     ],
     repRule: "neutral → stretch → hold",
+    stageImages: ["standing", "calf-stretch"],
     cues: {
-      "ankle>85": "Lean forward more to feel the stretch in the calf",
+      "ankle>92": "Lean forward more to feel the stretch in the calf",
     },
     trackingNotes: "Side camera; back leg ankle/footIndex landmarks must be visible.",
   },
@@ -63,6 +64,7 @@ export const EXERCISES = [
       { name: "stretch",  knee: [30, 70] },    // deeply flexed, heel near buttock
     ],
     repRule: "standing → stretch → hold",
+    stageImages: ["standing", "quad-stretch"],
     cues: {
       "knee>80": "Pull heel closer to your buttock for a deeper stretch",
     },
@@ -85,6 +87,7 @@ export const EXERCISES = [
       { name: "stretch", hip: [60, 110],  knee: [130, 180] }, // hip flexed, knee as straight as possible
     ],
     repRule: "flat → stretch → hold",
+    stageImages: ["lying-flat", "lying-leg-raised"],
     cues: {
       "knee<120": "Try to straighten your knee more while holding the stretch",
     },
@@ -110,6 +113,7 @@ export const EXERCISES = [
       { name: "squat",    knee: [90, 130],  hip: [90, 130]  }, // ~10-inch descent
     ],
     repRule: "standing → squat → standing",
+    stageImages: ["standing", "squat", "standing"],
     symmetry: { joint: "knee", maxDiffDeg: 15 },
     cues: {
       "knee<90":       "Don't go too deep — this is a half squat only",
@@ -134,6 +138,7 @@ export const EXERCISES = [
       { name: "curled",   knee: [30, 70]   }, // heel toward ceiling
     ],
     repRule: "standing → curled → standing",
+    stageImages: ["standing", "knee-curled", "standing"],
     cues: {
       "knee>90": "Curl higher — bring your heel up toward the ceiling",
     },
@@ -145,20 +150,20 @@ export const EXERCISES = [
     category: "strengthening",
     prescription: { sets: 2, reps: 10, holdSeconds: 0, daysPerWeek: "6–7" },
     camera: "front",
-    // Ankle plantarflexion: heel lifts, ankle elevates above toes.
-    // Neutral standing ≈ 90°; on tiptoe the ankle is above the toe → angle increases toward 110–130°.
+    // Foot inclination: degrees the foot rises above horizontal (floor), 0° when flat.
+    // ~0–10° standing flat; ~20–45° on tiptoe. Directly captures heel elevation.
     trackedAngles: {
-      ankle: { points: ["knee", "ankle", "footIndex"], side: "affected" },
+      footInclination: { points: ["heel", "footIndex"], side: "affected" },
     },
     phases: [
-      { name: "flat",   ankle: [80, 100]  },
-      { name: "raised", ankle: [105, 135] }, // plantarflexion pushes angle past 90°
+      { name: "flat",   footInclination: [0, 12]  },
+      { name: "raised", footInclination: [18, 50] },
     ],
     repRule: "flat → raised → flat",
+    stageImages: ["standing", "calf-raised", "standing"],
     cues: {
-      "ankle<100": "Rise higher onto your toes",
+      "footInclination<18": "Rise higher onto your toes",
     },
-    trackingNotes: "Ensure footIndex (toe) landmark is in frame. Side camera required.",
   },
 
   {
@@ -176,6 +181,7 @@ export const EXERCISES = [
       { name: "extended", knee: [155, 180] }, // leg straightened out
     ],
     repRule: "seated → extended → seated",
+    stageImages: ["seated", "seated-leg-extended", "seated"],
     cues: {
       "knee<150": "Try to straighten your leg fully at the top",
     },
@@ -197,6 +203,7 @@ export const EXERCISES = [
       { name: "raised", hip: [125, 155], knee: [155, 180] }, // 6–10 inch lift ≈ 25–35° hip flexion
     ],
     repRule: "flat → raised → flat",
+    stageImages: ["lying-flat", "lying-leg-raised", "lying-flat"],
     cues: {
       "knee<150":  "Keep your leg straight — don't bend the knee",
       "hip<120":   "Lower leg slightly — 6 to 10 inches off the floor is enough",
@@ -222,6 +229,7 @@ export const EXERCISES = [
       { name: "raised", hip: [185, 210], knee: [155, 180] }, // hip extension past neutral
     ],
     repRule: "flat → raised → flat",
+    stageImages: ["prone-flat", "prone-leg-raised", "prone-flat"],
     cues: {
       "knee<150": "Keep your knee straight while lifting",
     },
@@ -246,6 +254,7 @@ export const EXERCISES = [
       { name: "abducted", hip: [125, 145] }, // 45° abduction
     ],
     repRule: "rest → abducted → rest",
+    stageImages: ["side-lying", "side-lying-abducted", "side-lying"],
     cues: {
       "hip>150": "Lift the leg higher — aim for a 45° angle from your body",
     },
@@ -266,9 +275,10 @@ export const EXERCISES = [
     },
     phases: [
       { name: "rest",     hip: [160, 180] },
-      { name: "adducted", hip: [145, 163] }, // smaller lift than abduction (6–8 inches)
+      { name: "adducted", hip: [145, 159] }, // top at 159 to avoid overlap with rest (160+)
     ],
     repRule: "rest → adducted → rest",
+    stageImages: ["side-lying", "side-lying-abducted", "side-lying"],
     cues: {
       "hip>163": "Lift the bottom leg off the floor — 6 to 8 inches is the target",
     },
@@ -292,6 +302,7 @@ export const EXERCISES = [
       { name: "extended", hip: [140, 180], knee: [150, 180] }, // legs pressed out straight
     ],
     repRule: "bent → extended → bent",
+    stageImages: ["lying-knees-bent", "lying-legs-extended", "lying-knees-bent"],
     cues: {
       "knee<150": "Press fully against the band — straighten your leg completely",
     },

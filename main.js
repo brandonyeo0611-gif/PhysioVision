@@ -6,6 +6,7 @@ import {
 
 import { jointAngles, symmetry, VISIBILITY_THRESHOLD } from "./geometry.js";
 import { FeedbackEngine, EXERCISES } from "./feedback/engine.js";
+import { POSES } from "./poses.js";
 
 // ── EMA smoother ─────────────────────────────────────────────────────────────
 
@@ -42,14 +43,52 @@ const toggleBtn   = document.getElementById("toggle");
 const fpsEl       = document.getElementById("fps");
 const exSelect    = document.getElementById("exerciseSelect");
 const sideSelect  = document.getElementById("sideSelect");
-const repCountEl  = document.getElementById("repCount");
-const phaseFlowEl = document.getElementById("phaseFlow");
-const progressEl  = document.getElementById("progressFill");
-const progressLbl = document.getElementById("progressLabel");
-const cueListEl   = document.getElementById("cueList");
-const symWarnEl   = document.getElementById("symWarning");
-const trackWarnEl = document.getElementById("trackingWarning");
-const prescEl     = document.getElementById("prescription");
+const poseStripEl        = document.getElementById("poseStrip");
+const repCountEl         = document.getElementById("repCount");
+const phaseFlowEl        = document.getElementById("phaseFlow");
+const progressEl         = document.getElementById("progressFill");
+const progressLbl        = document.getElementById("progressLabel");
+const progressSection    = document.getElementById("progressSection");
+const holdTimerSection   = document.getElementById("holdTimerSection");
+const holdProgressEl     = document.getElementById("holdProgressFill");
+const holdInlineEl       = document.getElementById("holdInline");
+const holdInlineCountEl  = document.getElementById("holdInlineCountdown");
+const cueListEl          = document.getElementById("cueList");
+const symWarnEl          = document.getElementById("symWarning");
+const trackWarnEl        = document.getElementById("trackingWarning");
+const prescEl            = document.getElementById("prescription");
+
+// ── Hold timer state ──────────────────────────────────────────────────────────
+let holdInterval  = null;
+let holdRemaining = 0;
+let holdTotal     = 0;
+
+function startHoldTimer(seconds) {
+  if (holdInterval) return; // already running
+  holdTotal     = seconds;
+  holdRemaining = seconds;
+  holdInlineEl.classList.add("active");
+  holdInlineCountEl.textContent = holdRemaining;
+  holdProgressEl.style.width    = "0%";
+
+  holdInterval = setInterval(() => {
+    holdRemaining--;
+    holdInlineCountEl.textContent = holdRemaining;
+    holdProgressEl.style.width    = `${((holdTotal - holdRemaining) / holdTotal) * 100}%`;
+    if (holdRemaining <= 0) {
+      clearHoldTimer();
+      engine.completeHold();
+    }
+  }, 1000);
+}
+
+function clearHoldTimer(resetSeconds) {
+  clearInterval(holdInterval);
+  holdInterval  = null;
+  holdRemaining = 0;
+  holdInlineEl.classList.remove("active");
+  if (resetSeconds) holdInlineCountEl.textContent = resetSeconds;
+}
 
 // ── Exercise selector ─────────────────────────────────────────────────────────
 
@@ -63,12 +102,17 @@ EXERCISES.forEach((ex) => {
 let engine = new FeedbackEngine(EXERCISES[0].id, "right");
 renderPrescription(engine.exercise);
 renderTrackingWarning(engine.exercise);
+renderPoseStrip(engine.exercise, engine.stages[0]);
 
 exSelect.addEventListener("change", () => {
   engine.changeExercise(exSelect.value, sideSelect.value);
-  smoother.state = {}; // reset smoothing on exercise change
+  smoother.state = {};
+  clearHoldTimer(engine.exercise.prescription.holdSeconds);
+  holdTimerSection.classList.add("hidden");
+  progressSection.classList.remove("hidden");
   renderPrescription(engine.exercise);
   renderTrackingWarning(engine.exercise);
+  renderPoseStrip(engine.exercise, engine.stages[0]);
   repCountEl.textContent = "0";
   cueListEl.innerHTML = "";
   symWarnEl.classList.add("hidden");
@@ -203,6 +247,13 @@ function updateFeedbackPanel(angles) {
   // Rep counter
   repCountEl.textContent = fb.repCount;
 
+  // Highlight active pose card without re-rendering the whole strip
+  poseStripEl.querySelectorAll(".pose-card").forEach((card, i) => {
+    card.classList.toggle("active", fb.stages[i] === fb.phase);
+    card.querySelector(".pose-label").style.color =
+      fb.stages[i] === fb.phase ? "var(--accent)" : "";
+  });
+
   // Phase flow chips
   phaseFlowEl.innerHTML = fb.stages
     .map((s, i) => {
@@ -215,15 +266,28 @@ function updateFeedbackPanel(angles) {
     })
     .join("");
 
-  // Progress bar
-  const pct = Math.round(fb.progress * 100);
-  progressEl.style.width = `${pct}%`;
-  const nextIdx = fb.stages.indexOf(fb.phase) + 1;
-  const nextPhase = fb.stages[nextIdx] ?? fb.stages[0];
-  progressLbl.textContent =
-    pct >= 100
-      ? `Hold ${fb.phase} position`
-      : `Moving to ${nextPhase}… ${pct}%`;
+  // Hold timer vs progress bar — mutually exclusive
+  if (fb.inHold) {
+    // Switch to hold timer view
+    progressSection.classList.add("hidden");
+    holdTimerSection.classList.remove("hidden");
+    startHoldTimer(fb.exercise.prescription.holdSeconds ?? 30);
+  } else {
+    // Cancel timer if user broke position — reset inline display to full hold seconds
+    if (holdInterval) clearHoldTimer(fb.exercise.prescription.holdSeconds);
+    progressSection.classList.remove("hidden");
+    holdTimerSection.classList.add("hidden");
+
+    // Progress bar
+    const pct = Math.round(fb.progress * 100);
+    progressEl.style.width = `${pct}%`;
+    const nextIdx = fb.stages.indexOf(fb.phase) + 1;
+    const nextPhase = fb.stages[nextIdx] ?? fb.stages[0];
+    progressLbl.textContent =
+      pct >= 100
+        ? `Get into ${fb.phase} position`
+        : `Moving to ${nextPhase}… ${pct}%`;
+  }
 
   // Coaching cues
   cueListEl.innerHTML = fb.cues
@@ -274,12 +338,44 @@ function setSymRow(key, left, right) {
 
 // ── Static panel renders ──────────────────────────────────────────────────────
 
+function renderPoseStrip(exercise, activePhase) {
+  const images = exercise.stageImages ?? [];
+  const stages = engine.stages;
+  if (!images.length) { poseStripEl.innerHTML = ""; return; }
+
+  poseStripEl.innerHTML = images.map((poseKey, i) => {
+    const svg = POSES[poseKey] ?? "";
+    const isLandscape = svg.includes('viewBox="0 0 160');
+    const isActive = stages[i] === activePhase;
+    const label = stages[i] ?? "";
+    const arrow = i < images.length - 1
+      ? `<span class="pose-arrow-sep">→</span>`
+      : "";
+    return `
+      <div class="pose-card${isActive ? " active" : ""}">
+        ${svg.replace("<svg ", `<svg class="${isLandscape ? "landscape" : ""}" `)}
+        <span class="pose-label">${label}</span>
+      </div>
+      ${arrow}`;
+  }).join("");
+}
+
 function renderPrescription(ex) {
   const p = ex.prescription;
   prescEl.textContent =
     `${p.sets} sets × ${p.reps} reps` +
     (p.holdSeconds ? ` · hold ${p.holdSeconds}s` : "") +
     ` · ${p.daysPerWeek} days/week`;
+
+  // Show inline hold timer only for stretch exercises
+  console.log("renderPrescription:", ex.id, ex.category, p.holdSeconds, holdInlineEl);
+  if (ex.category === "stretch" && p.holdSeconds) {
+    holdInlineEl.classList.remove("hidden");
+    holdInlineEl.classList.remove("active");
+    holdInlineCountEl.textContent = p.holdSeconds;
+  } else {
+    holdInlineEl.classList.add("hidden");
+  }
 }
 
 function renderTrackingWarning(ex) {
