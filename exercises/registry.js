@@ -300,4 +300,5 @@ export const EXERCISES = [
 ];
 
 // Quick lookup by exercise id.
+// basic fildering
 export const EXERCISE_MAP = Object.fromEntries(EXERCISES.map((e) => [e.id, e]));

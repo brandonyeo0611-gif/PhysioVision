@@ -27,7 +27,7 @@ export class FeedbackEngine {
   update(angles) {
     const detected = this._detectPhase(angles);
 
-    // Advance state machine only to the next expected stage, in order.
+    // see if the phase is detected, then move to the next phase
     if (detected !== null && detected !== this.currentPhase) {
       const nextStage = this.stages[this.stageIdx + 1];
       if (detected === nextStage) {
@@ -78,7 +78,9 @@ export class FeedbackEngine {
     return angles[sideKey] ?? null;
   }
 
+  // scoring from 0 - 1, base on how well the stage is done, if 1 then can move on to the next stage
   _progressToNext(angles) {
+    // if at the final stage of this distance and 
     if (this.stageIdx >= this.stages.length - 1) return 1;
     const nextName = this.stages[this.stageIdx + 1];
     const nextPhase = this.exercise.phases.find((p) => p.name === nextName);
@@ -97,7 +99,7 @@ export class FeedbackEngine {
   _evaluateCues(angles) {
     if (!this.exercise.cues) return [];
     return Object.entries(this.exercise.cues)
-      .filter(([cond]) => this._evalCondition(cond, angles))
+      .filter(([cond]) => this._evalCondition(cond, angles)) // 
       .map(([, msg]) => msg);
   }
 
@@ -120,8 +122,9 @@ export class FeedbackEngine {
     const a = this._resolve(key, angles);
     if (!a || a.lowConfidence) return false;
     return op === "<" ? a.value < threshold : a.value > threshold;
-  }
+  } // helper function used on evaluate cues to check if the cue is done well
 
+  // check symmetry for bilateral exercises,
   _checkSymmetry(angles) {
     if (!this.exercise.symmetry) return null;
     const { joint, maxDiffDeg } = this.exercise.symmetry;
@@ -135,7 +138,7 @@ export class FeedbackEngine {
   }
 }
 
-// How close is `value` to landing inside [min, max]? 0–1.
+// How close is `value` to landing inside [min, max]? 0–1, which is defined in registry
 function _angleCloseness(value, [min, max]) {
   if (value >= min && value <= max) return 1;
   const mid = (min + max) / 2;
