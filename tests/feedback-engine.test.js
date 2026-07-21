@@ -1,0 +1,143 @@
+import assert from "node:assert/strict";
+
+import { FeedbackEngine } from "../feedback/engine.js";
+
+const visible = (value) => ({
+  value,
+  lowConfidence: false,
+  weakPoints: [],
+});
+
+const hidden = {
+  value: Number.NaN,
+  lowConfidence: true,
+  weakPoints: ["rightKnee"],
+};
+
+const halfSquatPose = (overrides = {}) => ({
+  leftKnee: visible(170),
+  rightKnee: visible(170),
+  leftHip: visible(165),
+  rightHip: visible(165),
+  torsoLean: visible(10),
+  leftKneeForwardRatio: visible(0),
+  rightKneeForwardRatio: visible(0),
+  ...overrides,
+});
+
+const halfSquatBottom = (overrides = {}) =>
+  halfSquatPose({
+    leftKnee: visible(110),
+    rightKnee: visible(110),
+    leftHip: visible(115),
+    rightHip: visible(115),
+    torsoLean: visible(25),
+    ...overrides,
+  });
+
+{
+  const engine = new FeedbackEngine("half-squats", "right");
+  const result = engine.update(halfSquatPose({ rightKnee: hidden }));
+
+  assert.equal(result.trackingReady, false);
+  assert.deepEqual(result.missingMeasurements, ["rightKnee"]);
+  assert.equal(result.progress, 0);
+  assert.deepEqual(result.cues, []);
+}
+
+{
+  const engine = new FeedbackEngine("half-squats", "right");
+  const result = engine.update(halfSquatPose());
+
+  assert.equal(result.trackingReady, true);
+  assert.deepEqual(result.missingMeasurements, []);
+}
+
+{
+  const engine = new FeedbackEngine("half-squats", "right");
+  engine.update(halfSquatPose({ leftKnee: hidden }));
+  const result = engine.update(halfSquatBottom({ leftKnee: hidden }));
+
+  assert.equal(result.trackingReady, false);
+  assert.equal(result.phase, "standing");
+  assert.equal(result.repCount, 0);
+}
+
+{
+  const engine = new FeedbackEngine("half-squats", "right");
+  engine.update(halfSquatPose(), 0);
+  const ready = engine.update(halfSquatPose(), 300);
+
+  assert.equal(ready.startConfirmed, true);
+  assert.equal(engine.update(halfSquatBottom(), 400).phase, "standing");
+  assert.equal(engine.update(halfSquatBottom(), 699).phase, "standing");
+  assert.equal(engine.update(halfSquatBottom(), 700).phase, "squat");
+  assert.equal(engine.update(halfSquatPose(), 800).repCount, 0);
+
+  const completed = engine.update(halfSquatPose(), 1100);
+  assert.equal(completed.phase, "standing");
+  assert.equal(completed.repCount, 1);
+}
+
+{
+  const engine = new FeedbackEngine("half-squats", "right");
+  engine.update(halfSquatBottom(), 0);
+  engine.update(halfSquatBottom(), 500);
+  engine.update(halfSquatPose(), 600);
+  const result = engine.update(halfSquatPose(), 900);
+
+  assert.equal(result.startConfirmed, true);
+  assert.equal(result.repCount, 0);
+}
+
+{
+  const engine = new FeedbackEngine("half-squats", "right");
+  const kneeForward = engine.update(
+    halfSquatPose({ leftKneeForwardRatio: visible(0.2) })
+  );
+  const torsoLean = engine.update(halfSquatPose({ torsoLean: visible(45) }));
+  const multipleProblems = engine.update(
+    halfSquatBottom({
+      leftKnee: visible(85),
+      rightKnee: visible(85),
+      torsoLean: visible(45),
+    })
+  );
+
+  assert.ok(
+    kneeForward.cues.includes(
+      "Move your left knee back so it stays over your foot"
+    )
+  );
+  assert.ok(
+    torsoLean.cues.includes(
+      "Lift your chest slightly — avoid leaning too far forward"
+    )
+  );
+  assert.equal(multipleProblems.cues.length, 1);
+}
+
+{
+  const engine = new FeedbackEngine("heel-cord-stretch", "right");
+  const result = engine.update({
+    rightAnkle: visible(100),
+    rightKnee: hidden,
+  });
+
+  assert.equal(result.trackingReady, true);
+}
+
+{
+  const engine = new FeedbackEngine("heel-cord-stretch", "right");
+  engine.update({ rightAnkle: visible(100) });
+  const holding = engine.update({ rightAnkle: visible(70) });
+  const trackingLost = engine.update({ rightAnkle: hidden });
+
+  assert.equal(holding.inHold, true);
+  assert.equal(holding.trackingReady, true);
+  assert.equal(trackingLost.inHold, true);
+  assert.equal(trackingLost.trackingReady, false);
+  assert.deepEqual(trackingLost.cues, []);
+}
+
+console.log("feedback engine tracking tests passed");

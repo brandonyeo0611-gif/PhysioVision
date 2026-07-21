@@ -101,24 +101,107 @@ export const EXERCISES = [
     name: "Half Squats",
     category: "strengthening",
     prescription: { sets: 3, reps: 10, holdSeconds: 5, daysPerWeek: "4–5" },
-    camera: "front",   // side gives cleanest knee/hip angles; front works for symmetry
+    camera: "front", // required for bilateral symmetry and facing-direction checks
+    trackingWarning:
+      "Face the camera and keep both feet, knees, hips, and shoulders fully visible.",
     trackedAngles: {
       leftKnee:  { points: ["leftHip",  "leftKnee",  "leftAnkle"]  },
       rightKnee: { points: ["rightHip", "rightKnee", "rightAnkle"] },
       leftHip:   { points: ["leftShoulder",  "leftHip",  "leftKnee"]  },
       rightHip:  { points: ["rightShoulder", "rightHip", "rightKnee"] },
+      torsoLean: {
+        points: ["leftShoulder", "rightShoulder", "leftHip", "rightHip"],
+      },
+      leftKneeForwardRatio: {
+        points: ["nose", "leftKnee", "leftAnkle", "leftFootIndex"],
+      },
+      rightKneeForwardRatio: {
+        points: ["nose", "rightKnee", "rightAnkle", "rightFootIndex"],
+      },
+    },
+    // Require a position to remain stable before advancing the rep state.
+    phaseConfirmationMs: 300,
+    maxCues: 1,
+    calibration: {
+      startPhase: "standing",
+      targetPhase: "squat",
+      captureKeys: [
+        "leftKnee",
+        "rightKnee",
+        "leftHip",
+        "rightHip",
+        "torsoLean",
+        "leftKneeForwardRatio",
+        "rightKneeForwardRatio",
+      ],
+      // Only the user's comfortable joint range is personalised. Form-safety
+      // measurements are captured and validated, but their limits stay fixed.
+      personalizedKeys: ["leftKnee", "rightKnee", "leftHip", "rightHip"],
+      toleranceDegrees: 8,
+      safeRanges: {
+        start: {
+          leftKnee: [145, 180],
+          rightKnee: [145, 180],
+          leftHip: [145, 180],
+          rightHip: [145, 180],
+          torsoLean: [0, 25],
+          leftKneeForwardRatio: [-1, 0.15],
+          rightKneeForwardRatio: [-1, 0.15],
+        },
+        target: {
+          // A shallower comfortable squat can be calibrated, while 90° remains
+          // the deepest permitted knee angle in this prototype.
+          leftKnee: [90, 145],
+          rightKnee: [90, 145],
+          leftHip: [90, 150],
+          rightHip: [90, 150],
+          torsoLean: [0, 40],
+          leftKneeForwardRatio: [-1, 0.15],
+          rightKneeForwardRatio: [-1, 0.15],
+        },
+      },
+      captureErrors: {
+        leftKnee: "Use a comfortable half-squat depth and do not bend past 90°.",
+        rightKnee: "Use a comfortable half-squat depth and do not bend past 90°.",
+        leftHip: "Use a smaller, comfortable movement for this calibration.",
+        rightHip: "Use a smaller, comfortable movement for this calibration.",
+        torsoLean: "Lift your chest and try the measurement again.",
+        leftKneeForwardRatio: "Move your knees back over your feet, then try again.",
+        rightKneeForwardRatio: "Move your knees back over your feet, then try again.",
+      },
     },
     phases: [
-      { name: "standing", knee: [160, 180], hip: [155, 180] },
-      { name: "squat",    knee: [90, 130],  hip: [90, 130]  }, // ~10-inch descent
+      {
+        name: "standing",
+        leftKnee: [160, 180],
+        rightKnee: [160, 180],
+        leftHip: [155, 180],
+        rightHip: [155, 180],
+        torsoLean: [0, 25],
+        leftKneeForwardRatio: [-1, 0.15],
+        rightKneeForwardRatio: [-1, 0.15],
+      },
+      {
+        name: "squat",
+        leftKnee: [90, 130],
+        rightKnee: [90, 130],
+        leftHip: [90, 135],
+        rightHip: [90, 135],
+        torsoLean: [0, 40],
+        leftKneeForwardRatio: [-1, 0.15],
+        rightKneeForwardRatio: [-1, 0.15],
+      },
     ],
     repRule: "standing → squat → standing",
     stageImages: ["standing", "squat", "standing"],
     symmetry: { joint: "knee", maxDiffDeg: 15 },
     cues: {
-      "knee<90":       "Don't go too deep — this is a half squat only",
-      "kneeDiff>15":   "Keep both knees bending equally",
-      "kneeForwardOfToe": "Keep knees behind toes",
+      "leftKnee<90": "Don't go too deep — this is a half squat only",
+      "rightKnee<90": "Don't go too deep — this is a half squat only",
+      "torsoLean>40": "Lift your chest slightly — avoid leaning too far forward",
+      "leftKneeForwardRatio>0.15": "Move your left knee back so it stays over your foot",
+      "rightKneeForwardRatio>0.15": "Move your right knee back so it stays over your foot",
+      "kneeDiff>15": "Keep both knees bending equally",
     },
   },
 

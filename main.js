@@ -7,6 +7,15 @@ import {
 import { jointAngles, symmetry, VISIBILITY_THRESHOLD } from "./geometry.js";
 import { FeedbackEngine, EXERCISES } from "./feedback/engine.js";
 import { POSES } from "./poses.js";
+import {
+  createCalibration,
+  extractCalibrationFrame,
+  getCalibration,
+  hasSavedProfile,
+  loadProfile,
+  saveCalibration,
+  validateCalibrationCapture,
+} from "./personalization.js";
 
 // ── EMA smoother ─────────────────────────────────────────────────────────────
 
@@ -60,11 +69,32 @@ const prescEl            = document.getElementById("prescription");
 const repTargetEl        = document.getElementById("repTarget");
 const feedbackEl         = document.getElementById("feedbackBanner");
 const cameraStage        = document.getElementById("cameraStage");
+const personalizationTitle  = document.getElementById("personalizationTitle");
+const personalizationDetail = document.getElementById("personalizationDetail");
+const calibrationBadge      = document.getElementById("calibrationBadge");
+const calibrationDetail     = document.getElementById("calibrationDetail");
+const openCalibrationBtn    = document.getElementById("openCalibration");
+const calibrationOverlay    = document.getElementById("calibrationOverlay");
+const calibrationStepLabel  = document.getElementById("calibrationStepLabel");
+const calibrationTitle      = document.getElementById("calibrationTitle");
+const calibrationInstructions = document.getElementById("calibrationInstructions");
+const calibrationStatus     = document.getElementById("calibrationStatus");
+const calibrationResult     = document.getElementById("calibrationResult");
+const calibrationAction     = document.getElementById("calibrationAction");
+const calibrationCancel     = document.getElementById("calibrationCancel");
+
+let profile = loadProfile();
+let poseLandmarker = null;
 
 // ── Hold timer state ──────────────────────────────────────────────────────────
 let holdInterval  = null;
 let holdRemaining = 0;
 let holdTotal     = 0;
+
+// ── Personal calibration state ───────────────────────────────────────────────
+const CALIBRATION_CAPTURE_MS = 1800;
+let calibrationSession = null;
+let calibrationDraft = null;
 
 function startHoldTimer(seconds) {
   if (holdInterval) return; // already running
@@ -90,7 +120,11 @@ function clearHoldTimer(resetSeconds) {
   holdInterval  = null;
   holdRemaining = 0;
   holdInlineEl.classList.remove("active");
-  if (resetSeconds) holdInlineCountEl.textContent = resetSeconds;
+  if (Number.isFinite(resetSeconds)) {
+    holdTotal = resetSeconds;
+    holdInlineCountEl.textContent = resetSeconds;
+    holdProgressEl.style.width = "0%";
+  }
 }
 
 // ── Exercise selector ─────────────────────────────────────────────────────────
@@ -102,14 +136,25 @@ EXERCISES.forEach((ex) => {
   exSelect.appendChild(opt);
 });
 
-let engine = new FeedbackEngine(EXERCISES[0].id, "right");
+sideSelect.value = profile.focusSide;
+let engine = new FeedbackEngine(
+  EXERCISES[0].id,
+  profile.focusSide,
+  getCalibration(EXERCISES[0].id)
+);
 renderPrescription(engine.exercise);
 renderTrackingWarning(engine.exercise);
 renderPoseStrip(engine.exercise, engine.stages[0]);
 renderStaticPhaseFlow(engine);
+renderPersonalization();
 
 exSelect.addEventListener("change", () => {
-  engine.changeExercise(exSelect.value, sideSelect.value);
+  cancelCalibration();
+  engine.changeExercise(
+    exSelect.value,
+    sideSelect.value,
+    getCalibration(exSelect.value)
+  );
   smoother.state = {};
   clearHoldTimer(engine.exercise.prescription.holdSeconds);
   holdTimerSection.classList.add("hidden");
@@ -124,16 +169,40 @@ renderStaticPhaseFlow(engine);
   progressEl.style.width = "0%";
   progressLbl.textContent = "Position yourself to start";
   setFeedbackBanner("ready");
+  renderPersonalization();
 });
 
 sideSelect.addEventListener("change", () => {
-  engine.changeExercise(exSelect.value, sideSelect.value);
+  cancelCalibration();
+  engine.changeExercise(
+    exSelect.value,
+    sideSelect.value,
+    getCalibration(exSelect.value)
+  );
   smoother.state = {};
+  repCountEl.textContent = "0";
+  progressEl.style.width = "0%";
+  setFeedbackBanner("ready");
+  renderPersonalization();
+});
+
+window.addEventListener("physiovision:profile-updated", (event) => {
+  cancelCalibration();
+  profile = event.detail;
+  sideSelect.value = profile.focusSide;
+  engine.changeExercise(
+    exSelect.value,
+    sideSelect.value,
+    getCalibration(exSelect.value)
+  );
+  smoother.state = {};
+  repCountEl.textContent = "0";
+  progressEl.style.width = "0%";
+  setFeedbackBanner("ready");
+  renderPersonalization();
 });
 
 // ── MediaPipe setup ───────────────────────────────────────────────────────────
-
-let poseLandmarker;
 
 async function createLandmarker() {
   const vision = await FilesetResolver.forVisionTasks(
@@ -150,6 +219,7 @@ async function createLandmarker() {
   });
   statusEl.textContent = "Movement guide ready";
   toggleBtn.disabled = false;
+  renderPersonalization();
 }
 
 // ── Camera ────────────────────────────────────────────────────────────────────
@@ -202,7 +272,8 @@ function renderFrame() {
 
   if (video.currentTime !== lastVideoTime) {
     lastVideoTime = video.currentTime;
-    const result = poseLandmarker.detectForVideo(video, performance.now());
+    const frameTimestamp = performance.now();
+    const result = poseLandmarker.detectForVideo(video, frameTimestamp);
 
     ctx.save();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -229,11 +300,26 @@ function renderFrame() {
       );
 
       updateDebugPanel(angles);
-      updateFeedbackPanel(angles);
-      statusEl.textContent = "Tracking your movement";
+      if (calibrationSession) {
+        updateCalibrationCapture(angles, frameTimestamp);
+        statusEl.textContent = "Personal calibration in progress";
+      } else {
+        updateFeedbackPanel(angles, frameTimestamp);
+        statusEl.textContent = "Tracking your movement";
+      }
     } else {
+      updateCalibrationCapture(null, frameTimestamp);
+      const interruptedHold = engine.inHold;
+      if (holdInterval) {
+        clearHoldTimer(engine.exercise.prescription.holdSeconds);
+      }
       statusEl.textContent = "Step back so your full body is visible";
-      setFeedbackBanner("position");
+      setFeedbackBanner(
+        "position",
+        interruptedHold
+          ? "Hold reset — return to the stretch to restart"
+          : ""
+      );
     }
 
     ctx.restore();
@@ -248,8 +334,8 @@ function renderFrame() {
 
 // ── Panel updates ─────────────────────────────────────────────────────────────
 
-function updateFeedbackPanel(angles) {
-  const fb = engine.update(angles);
+function updateFeedbackPanel(angles, timestampMs) {
+  const fb = engine.update(angles, timestampMs);
 
   // Rep counter
   repCountEl.textContent = fb.repCount;
@@ -276,7 +362,13 @@ function updateFeedbackPanel(angles) {
     // Switch to hold timer view
     progressSection.classList.add("hidden");
     holdTimerSection.classList.remove("hidden");
-    startHoldTimer(fb.exercise.prescription.holdSeconds ?? 30);
+    if (fb.trackingReady) {
+      startHoldTimer(fb.exercise.prescription.holdSeconds ?? 30);
+    } else if (holdInterval) {
+      // Fail safely: an uncertain pose cannot earn hold time. Reset so the
+      // complete prescribed duration must be tracked after visibility returns.
+      clearHoldTimer(fb.exercise.prescription.holdSeconds);
+    }
   } else {
     // Cancel timer if user broke position — reset inline display to full hold seconds
     if (holdInterval) clearHoldTimer(fb.exercise.prescription.holdSeconds);
@@ -295,10 +387,23 @@ function updateFeedbackPanel(angles) {
   }
 
   // Coaching cues
-  cueListEl.innerHTML = fb.cues
-    .map((c) => `<li>${c}</li>`)
+  const personalizedCues = fb.cues.map(personalizeCue);
+  cueListEl.innerHTML = personalizedCues
+    .map((c) => `<li>${escapeHtml(c)}</li>`)
     .join("");
-  setFeedbackBanner(fb.cues.length ? "adjust" : "good", fb.cues[0]);
+  if (!fb.trackingReady) {
+    setFeedbackBanner(
+      "tracking",
+      fb.inHold
+        ? "Hold reset — keep the required joints visible to restart"
+        : ""
+    );
+  } else {
+    setFeedbackBanner(
+      personalizedCues.length ? "adjust" : "good",
+      personalizedCues[0]
+    );
+  }
 
   // Symmetry warning
   if (fb.symmetryWarning) {
@@ -340,6 +445,237 @@ function setSymRow(key, left, right) {
   el.textContent = `${symmetry(left.value, right.value).toFixed(0)}°`;
   el.classList.remove("low-conf");
   el.title = "";
+}
+
+// ── Personal profile and calibration ─────────────────────────────────────────
+
+function renderPersonalization() {
+  const savedProfile = hasSavedProfile();
+  const calibration = getCalibration(exSelect.value);
+  const supportsCalibration = Boolean(engine.exercise.calibration);
+
+  personalizationTitle.textContent = savedProfile
+    ? `Guidance for ${profile.name || "you"}`
+    : "Set up your profile";
+  personalizationDetail.textContent = savedProfile
+    ? `${profile.goal} · ${cueStyleLabel(profile.cueStyle)} coaching`
+    : "Save your goals, preferences, and comfortable range.";
+
+  if (calibration) {
+    const kneeValues = [
+      calibration.target?.leftKnee?.median,
+      calibration.target?.rightKnee?.median,
+    ].filter(Number.isFinite);
+    const depth = kneeValues.length
+      ? `${Math.round(kneeValues.reduce((sum, value) => sum + value, 0) / kneeValues.length)}° knee target`
+      : "comfortable target saved";
+    calibrationBadge.textContent = "Personal range active";
+    calibrationDetail.textContent = `${depth} · safety limits unchanged`;
+    openCalibrationBtn.textContent = "Recalibrate";
+  } else if (supportsCalibration) {
+    calibrationBadge.textContent = "Standard range";
+    calibrationDetail.textContent = `Calibrate ${engine.exercise.name} to your comfortable depth.`;
+    openCalibrationBtn.textContent = "Calibrate";
+  } else {
+    calibrationBadge.textContent = "Standard range";
+    calibrationDetail.textContent = "Personal calibration is currently available for Half Squats.";
+    openCalibrationBtn.textContent = "Unavailable";
+  }
+
+  openCalibrationBtn.disabled = !poseLandmarker || !supportsCalibration;
+}
+
+function cueStyleLabel(style) {
+  if (style === "direct") return "short, direct";
+  if (style === "detailed") return "detailed";
+  return "gentle";
+}
+
+function personalizeCue(cue) {
+  if (!cue) return cue;
+  if (profile.cueStyle === "direct") return cue;
+  if (profile.cueStyle === "detailed") {
+    return `${cue}. Move slowly, then use the guide to check your position again.`;
+  }
+  return `When you’re ready, ${cue[0].toLowerCase()}${cue.slice(1)}`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+openCalibrationBtn.addEventListener("click", async () => {
+  if (!engine.exercise.calibration) return;
+  if (!running && !(await activateCameraGuide())) return;
+
+  calibrationDraft = null;
+  calibrationSession = {
+    exerciseId: engine.exercise.id,
+    step: "intro",
+    startFrames: null,
+    targetCaptures: [],
+    capture: null,
+  };
+  calibrationOverlay.classList.remove("hidden");
+  renderCalibrationStep();
+  calibrationAction.focus();
+});
+
+calibrationCancel.addEventListener("click", cancelCalibration);
+
+calibrationAction.addEventListener("click", () => {
+  if (!calibrationSession) return;
+
+  if (calibrationSession.step === "intro") {
+    calibrationSession.step = "start";
+    renderCalibrationStep();
+  } else if (calibrationSession.step === "start") {
+    beginCalibrationCapture("start");
+  } else if (calibrationSession.step === "target") {
+    beginCalibrationCapture("target");
+  } else if (calibrationSession.step === "result" && calibrationDraft) {
+    saveCalibration(calibrationDraft);
+    engine.changeExercise(
+      exSelect.value,
+      sideSelect.value,
+      calibrationDraft
+    );
+    smoother.state = {};
+    renderPersonalization();
+    setFeedbackBanner("ready");
+    cancelCalibration();
+    statusEl.textContent = "Personal range saved — movement guide ready";
+  }
+});
+
+function renderCalibrationStep() {
+  if (!calibrationSession) return;
+  const dots = [...calibrationOverlay.querySelectorAll(".calibration-dots span")];
+  const stepIndex = { intro: 0, start: 1, target: 2, result: 3 }[
+    calibrationSession.step
+  ];
+  dots.forEach((dot, index) => dot.classList.toggle("active", index <= stepIndex));
+  calibrationStatus.textContent = "";
+  calibrationResult.classList.add("hidden");
+  calibrationAction.disabled = false;
+
+  if (calibrationSession.step === "intro") {
+    calibrationStepLabel.textContent = "Personal calibration · about 1 minute";
+    calibrationTitle.textContent = `Fit ${engine.exercise.name} to your movement`;
+    calibrationInstructions.textContent =
+      "Keep a sturdy chair nearby. We’ll measure your natural standing position, then three comfortable half-squat depths. Stop if you feel pain, dizziness, or unsteadiness.";
+    calibrationAction.textContent = "Begin";
+  } else if (calibrationSession.step === "start") {
+    calibrationStepLabel.textContent = "Step 1 · Starting position";
+    calibrationTitle.textContent = "Stand naturally and look forward";
+    calibrationInstructions.textContent =
+      "Keep both feet, knees, hips, shoulders, and your head visible. Hold still while we measure for two seconds.";
+    calibrationAction.textContent = "Measure standing position";
+  } else if (calibrationSession.step === "target") {
+    const nextRep = calibrationSession.targetCaptures.length + 1;
+    calibrationStepLabel.textContent = `Step 2 · Comfortable squat ${nextRep} of 3`;
+    calibrationTitle.textContent = "Move to a comfortable half squat";
+    calibrationInstructions.textContent =
+      "Use the chair for support if needed. Keep your chest lifted and knees over your feet, then hold your comfortable depth.";
+    calibrationAction.textContent = `Measure squat ${nextRep}`;
+  } else {
+    const knees = [
+      calibrationDraft?.target.leftKnee?.median,
+      calibrationDraft?.target.rightKnee?.median,
+    ].filter(Number.isFinite);
+    const target = knees.length
+      ? Math.round(knees.reduce((sum, value) => sum + value, 0) / knees.length)
+      : null;
+    calibrationStepLabel.textContent = "Step 3 · Review";
+    calibrationTitle.textContent = "Your personal range is ready";
+    calibrationInstructions.textContent =
+      "This adjusts when a comfortable squat is recognized. Form and safety limits are not relaxed.";
+    calibrationResult.innerHTML = `
+      <span><strong>${target ?? "—"}°</strong>comfortable knee target</span>
+      <span><strong>${calibrationDraft?.naturalKneeDifference ?? "—"}°</strong>natural left/right difference</span>
+    `;
+    calibrationResult.classList.remove("hidden");
+    calibrationAction.textContent = "Save personal range";
+  }
+  calibrationAction.focus();
+}
+
+function beginCalibrationCapture(type) {
+  calibrationSession.capture = {
+    type,
+    startedAt: performance.now(),
+    frames: [],
+  };
+  calibrationAction.disabled = true;
+  calibrationStatus.textContent = "Measuring… hold this position";
+}
+
+function updateCalibrationCapture(angles, timestampMs) {
+  const capture = calibrationSession?.capture;
+  if (!capture) return;
+
+  if (angles) {
+    const frame = extractCalibrationFrame(
+      engine.exercise,
+      angles,
+      sideSelect.value
+    );
+    if (frame) capture.frames.push(frame);
+  }
+
+  const remaining = Math.max(
+    0,
+    Math.ceil((CALIBRATION_CAPTURE_MS - (timestampMs - capture.startedAt)) / 1000)
+  );
+  calibrationStatus.textContent = angles
+    ? `Measuring… ${remaining || "almost done"}`
+    : "Pause — make sure your full body is visible";
+
+  if (timestampMs - capture.startedAt < CALIBRATION_CAPTURE_MS) return;
+  finishCalibrationCapture(capture);
+}
+
+function finishCalibrationCapture(capture) {
+  calibrationSession.capture = null;
+  try {
+    validateCalibrationCapture(
+      engine.exercise,
+      capture.frames,
+      capture.type
+    );
+
+    if (capture.type === "start") {
+      calibrationSession.startFrames = capture.frames;
+      calibrationSession.step = "target";
+    } else {
+      calibrationSession.targetCaptures.push(capture.frames);
+      if (calibrationSession.targetCaptures.length >= 3) {
+        calibrationDraft = createCalibration(engine.exercise, {
+          affectedSide: sideSelect.value,
+          startFrames: calibrationSession.startFrames,
+          targetCaptures: calibrationSession.targetCaptures,
+        });
+        calibrationSession.step = "result";
+      }
+    }
+    renderCalibrationStep();
+  } catch (error) {
+    calibrationAction.disabled = false;
+    calibrationStatus.textContent = `${error.message} Try again.`;
+  }
+}
+
+function cancelCalibration() {
+  const wasActive = Boolean(calibrationSession);
+  calibrationSession = null;
+  calibrationDraft = null;
+  calibrationOverlay?.classList.add("hidden");
+  if (wasActive) openCalibrationBtn?.focus();
 }
 
 // ── Static panel renders ──────────────────────────────────────────────────────
@@ -412,6 +748,7 @@ function setFeedbackBanner(state, cue = "") {
   const title = feedbackEl.querySelector("strong");
   const detail = feedbackEl.querySelector("div > span");
   feedbackEl.classList.toggle("needs-adjustment", state === "adjust");
+  feedbackEl.classList.toggle("tracking-uncertain", state === "tracking");
 
   if (state === "adjust") {
     symbol.textContent = "!";
@@ -421,10 +758,15 @@ function setFeedbackBanner(state, cue = "") {
     symbol.textContent = "✓";
     title.textContent = "Movement looks good";
     detail.textContent = "Keep this pace and breathe naturally";
+  } else if (state === "tracking") {
+    symbol.textContent = "?";
+    title.textContent = "Tracking uncertain";
+    detail.textContent =
+      cue || "Make sure your required joints are clearly visible";
   } else if (state === "position") {
     symbol.textContent = "↔";
     title.textContent = "Let’s get you in frame";
-    detail.textContent = "Make sure your full body is visible";
+    detail.textContent = cue || "Make sure your full body is visible";
   } else {
     symbol.textContent = "●";
     title.textContent = "Get into position";
@@ -434,31 +776,43 @@ function setFeedbackBanner(state, cue = "") {
 
 // ── Controls ──────────────────────────────────────────────────────────────────
 
-toggleBtn.addEventListener("click", async () => {
-  if (!running) {
-    try {
-      toggleBtn.disabled = true;
-      statusEl.textContent = "Starting camera…";
-      await startCamera();
-      running = true;
-      cameraStage?.classList.add("camera-active");
-      toggleBtn.innerHTML = 'Stop camera guide <span aria-hidden="true">■</span>';
-      toggleBtn.disabled = false;
-      renderFrame();
-    } catch (err) {
-      statusEl.textContent = `Camera error: ${err.message}`;
-      toggleBtn.disabled = false;
-    }
-  } else {
-    running = false;
-    cancelAnimationFrame(rafId);
-    stopCamera();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    cameraStage?.classList.remove("camera-active");
-    toggleBtn.innerHTML = 'Start camera guide <span aria-hidden="true">→</span>';
-    statusEl.textContent = "Stopped";
-    setFeedbackBanner("ready");
+async function activateCameraGuide() {
+  if (running) return true;
+  try {
+    toggleBtn.disabled = true;
+    statusEl.textContent = "Starting camera…";
+    await startCamera();
+    running = true;
+    cameraStage?.classList.add("camera-active");
+    toggleBtn.innerHTML = 'Stop camera guide <span aria-hidden="true">■</span>';
+    toggleBtn.disabled = false;
+    renderFrame();
+    return true;
+  } catch (err) {
+    statusEl.textContent = `Camera error: ${err.message}`;
+    toggleBtn.disabled = false;
+    return false;
   }
+}
+
+function deactivateCameraGuide() {
+  running = false;
+  cancelAnimationFrame(rafId);
+  cancelCalibration();
+  if (holdInterval) {
+    clearHoldTimer(engine.exercise.prescription.holdSeconds);
+  }
+  stopCamera();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  cameraStage?.classList.remove("camera-active");
+  toggleBtn.innerHTML = 'Start camera guide <span aria-hidden="true">→</span>';
+  statusEl.textContent = "Stopped";
+  setFeedbackBanner("ready");
+}
+
+toggleBtn.addEventListener("click", async () => {
+  if (running) deactivateCameraGuide();
+  else await activateCameraGuide();
 });
 
 createLandmarker().catch((err) => {

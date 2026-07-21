@@ -1314,6 +1314,109 @@ textarea:focus-visible {
   letter-spacing: 0.05em;
 }
 
+.calibration-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 28px 28px 58px;
+  pointer-events: none;
+  background: linear-gradient(transparent 30%, rgba(5, 22, 23, 0.5));
+}
+
+.calibration-dialog {
+  width: min(520px, 100%);
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  color: var(--white);
+  background: rgba(11, 36, 38, 0.94);
+  box-shadow: 0 22px 60px rgba(3, 16, 17, 0.35);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  pointer-events: auto;
+}
+
+.calibration-step-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--mint);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.calibration-dots {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 18px;
+}
+
+.calibration-dots span {
+  width: 28px;
+  height: 3px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.calibration-dots span.active {
+  background: var(--coral);
+}
+
+.calibration-dialog h3 {
+  margin-bottom: 10px;
+  font-size: 27px;
+  letter-spacing: -0.04em;
+}
+
+.calibration-dialog > p {
+  margin-bottom: 17px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 13px;
+}
+
+.calibration-dialog .calibration-status {
+  min-height: 20px;
+  margin-bottom: 12px;
+  color: var(--yellow);
+  font-weight: 650;
+}
+
+.calibration-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+.calibration-cancel {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.calibration-result {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.calibration-result span {
+  padding: 11px;
+  border-radius: 9px;
+  color: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 10px;
+}
+
+.calibration-result strong {
+  display: block;
+  color: var(--white);
+  font-size: 20px;
+}
+
 .camera-safety {
   display: flex;
   align-items: center;
@@ -1349,6 +1452,106 @@ textarea:focus-visible {
   font-weight: 700;
   letter-spacing: 0.11em;
   text-transform: uppercase;
+}
+
+.personalization-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid #c6dcd0;
+  border-radius: 11px;
+  background: var(--mint-light);
+}
+
+.personalization-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--ink);
+  background: var(--mint);
+}
+
+.personalization-card span,
+.personalization-card strong,
+.personalization-card small {
+  display: block;
+}
+
+.personalization-card span {
+  color: var(--green);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.personalization-card strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personalization-card small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personalization-card button {
+  padding: 5px 8px;
+  border: 0;
+  color: var(--ink);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 750;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.calibration-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+}
+
+.calibration-control span,
+.calibration-control small {
+  display: block;
+}
+
+.calibration-control span {
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.calibration-control small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.calibration-control .text-link {
+  flex: 0 0 auto;
+  font-size: 11px;
+}
+
+.calibration-control button:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .control-row {
@@ -1485,6 +1688,11 @@ textarea:focus-visible {
   background: #fff0d4;
 }
 
+.feedback-banner.tracking-uncertain {
+  color: var(--ink-soft);
+  background: #e7eeeb;
+}
+
 .feedback-symbol {
   display: grid;
   place-items: center;
@@ -1498,6 +1706,10 @@ textarea:focus-visible {
 
 .needs-adjustment .feedback-symbol {
   background: #dc8233;
+}
+
+.tracking-uncertain .feedback-symbol {
+  background: var(--muted);
 }
 
 .feedback-banner strong,
@@ -2232,6 +2444,7 @@ details.metrics summary {
 }
 
 .plan-modal,
+.profile-modal,
 .booking-modal {
   padding: 42px 48px 46px;
 }
@@ -2523,6 +2736,37 @@ details.metrics summary {
 
 .full-button {
   width: 100%;
+}
+
+.profile-modal {
+  width: min(820px, calc(100vw - 32px));
+}
+
+.profile-safety-note {
+  display: flex;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 13px;
+  border-radius: 9px;
+  color: #315446;
+  background: var(--mint-light);
+  font-size: 11px;
+}
+
+.profile-safety-note > span {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 50%;
+  color: var(--white);
+  background: var(--green);
+  font-weight: 750;
+}
+
+.profile-safety-note p {
+  margin: 0;
 }
 
 .booking-modal {
@@ -2988,6 +3232,15 @@ details.metrics summary {
     font-weight: 600;
   }
 
+  .mobile-nav .mobile-profile-button {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 600;
+  }
+
   .mobile-nav .button {
     margin-top: 18px;
   }
@@ -3281,8 +3534,31 @@ details.metrics summary {
   }
 
   .plan-modal,
+  .profile-modal,
   .booking-modal {
     padding: 35px 20px 26px;
+  }
+
+  .calibration-overlay {
+    padding: 16px 12px 48px;
+  }
+
+  .calibration-dialog {
+    padding: 18px;
+  }
+
+  .calibration-dialog h3 {
+    font-size: 23px;
+  }
+
+  .calibration-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+    gap: 12px;
+  }
+
+  .calibration-actions .button {
+    width: 100%;
   }
 
   .modal-progress {

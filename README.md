@@ -9,6 +9,8 @@ connected to progress trends.
 
 - Editorial landing page and product story
 - Three-step AI plan intake based on goals and profile information
+- On-device personal profile for goals, focus side, mobility, and coaching style
+- Guided half-squat calibration using natural standing and three comfortable depths
 - MediaPipe-powered pose tracking with live form cues and repetition counting
 - Patient progress and clinical escalation preview
 - Online physiotherapist booking prototype
@@ -27,6 +29,10 @@ Then open `http://localhost:4173`.
 
 The pose model and web fonts load from external CDNs, so an internet connection
 is required for the full exercise-guidance experience.
+
+Profile and calibration data are stored in browser `localStorage` for this
+prototype. Half-squat calibration personalizes comfortable knee and hip ranges;
+it does not loosen torso, knee-position, or maximum-depth safety limits.
 
 ## Safety
 

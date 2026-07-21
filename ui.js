@@ -1,3 +1,9 @@
+import {
+  hasSavedProfile,
+  loadProfile,
+  saveProfile,
+} from "./personalization.js";
+
 (() => {
   const body = document.body;
   const header = document.querySelector(".site-header");
@@ -5,6 +11,7 @@
   const mobileNav = document.querySelector(".mobile-nav");
   const modalShells = [...document.querySelectorAll(".modal-shell")];
   const planForm = document.getElementById("planForm");
+  const profileForm = document.getElementById("profileForm");
   const planSteps = planForm ? [...planForm.querySelectorAll(".form-step")] : [];
   const progressBars = [...document.querySelectorAll(".modal-progress span")];
   const toast = document.getElementById("toast");
@@ -52,7 +59,10 @@
     body.classList.add("modal-open");
 
     if (id === "plan-modal") {
+      if (hasSavedProfile()) fillFormFromProfile(planForm, loadProfile());
       showPlanStep(1);
+    } else if (id === "profile-modal") {
+      fillFormFromProfile(profileForm, loadProfile());
     }
 
     window.setTimeout(() => {
@@ -135,6 +145,14 @@
         const formData = new FormData(planForm);
         const goal = formData.get("goal") || "moving with confidence";
         const age = formData.get("age");
+        saveProfile({
+          name: formData.get("name"),
+          age,
+          goal,
+          activity: formData.get("activity"),
+          focusSide: formData.get("focusSide"),
+          cueStyle: formData.get("cueStyle"),
+        });
         const summary = document.getElementById("planSummary");
         if (summary) {
           summary.textContent = `Based on your profile${
@@ -154,6 +172,24 @@
     closeModal();
     document.getElementById("practice")?.scrollIntoView({ behavior: "smooth" });
   });
+
+  profileForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!profileForm.reportValidity()) return;
+    const formData = new FormData(profileForm);
+    saveProfile(Object.fromEntries(formData.entries()));
+    closeModal(profileForm.closest(".modal-shell"));
+  });
+
+  function fillFormFromProfile(form, profile) {
+    if (!form) return;
+    for (const [key, value] of Object.entries(profile)) {
+      const field = form.elements.namedItem(key);
+      if (field && value !== undefined && value !== null) {
+        field.value = String(value);
+      }
+    }
+  }
 
   document.querySelectorAll(".date-options, .time-options").forEach((group) => {
     group.querySelectorAll("button").forEach((button) => {

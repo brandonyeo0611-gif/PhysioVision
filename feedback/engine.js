@@ -1,14 +1,19 @@
 import { EXERCISES, EXERCISE_MAP } from "../exercises/registry.js";
+import { applyCalibration } from "../personalization.js";
 
 export { EXERCISES };
 
 export class FeedbackEngine {
-  constructor(exerciseId = "half-squats", affectedSide = "right") {
-    this._init(exerciseId, affectedSide);
+  constructor(
+    exerciseId = "half-squats",
+    affectedSide = "right",
+    calibration = null
+  ) {
+    this._init(exerciseId, affectedSide, calibration);
   }
 
-  _init(exerciseId, affectedSide) {
-    this.exercise = EXERCISE_MAP[exerciseId];
+  _init(exerciseId, affectedSide, calibration = null) {
+    this.exercise = applyCalibration(EXERCISE_MAP[exerciseId], calibration);
     this.side = affectedSide;
     // Parse "standing → squat → standing"; drop "hold" (handled by UI timer)
     this.stages = this.exercise.repRule
@@ -19,16 +24,40 @@ export class FeedbackEngine {
     this.currentPhase = this.stages[0];
     this.repCount = 0;
     this.inHold = false; // true while user is holding a stretch position
+    this.phaseCandidate = null;
+    this.phaseCandidateSince = 0;
+    this.startConfirmed = !this.exercise.phaseConfirmationMs;
   }
 
-  changeExercise(exerciseId, affectedSide) {
-    this._init(exerciseId, affectedSide ?? this.side);
+  changeExercise(exerciseId, affectedSide, calibration = null) {
+    this._init(exerciseId, affectedSide ?? this.side, calibration);
   }
 
-  update(angles) {
-    const detected = this._detectPhase(angles);
+  update(angles, timestampMs = Date.now()) {
+    const tracking = this._trackingStatus(angles);
+    const detected = tracking.ready ? this._detectPhase(angles) : null;
+    let canAdvance = tracking.ready;
 
-    if (this.inHold) {
+    if (!tracking.ready) {
+      this._resetPhaseCandidate();
+      this.startConfirmed = !this.exercise.phaseConfirmationMs;
+    } else if (!this.startConfirmed) {
+      canAdvance = false;
+      if (
+        detected === this.stages[0] &&
+        this._phaseConfirmed(`start:${detected}`, timestampMs)
+      ) {
+        this.startConfirmed = true;
+        this._resetPhaseCandidate();
+      } else if (detected !== this.stages[0]) {
+        this._resetPhaseCandidate();
+      }
+    }
+
+    if (!canAdvance) {
+      // Start-position confirmation and tracking-loss handling above own the
+      // phase candidate until it is safe to advance the exercise sequence.
+    } else if (this.inHold) {
       // Only cancel if clearly in a different named phase — ignore null (low-confidence / mid-transition)
       if (detected !== null && detected !== this.currentPhase) {
         this.inHold = false;
@@ -38,19 +67,14 @@ export class FeedbackEngine {
     } else if (detected !== null && detected !== this.currentPhase) {
       const nextStage = this.stages[this.stageIdx + 1];
       if (detected === nextStage) {
-        this.stageIdx++;
-        this.currentPhase = detected;
-        if (this.stageIdx >= this.stages.length - 1) {
-          if (this.exercise.category === "stretch") {
-            // Don't count yet — wait for hold timer to complete
-            this.inHold = true;
-          } else {
-            this.repCount++;
-            this.stageIdx = 0;
-            this.currentPhase = this.stages[0];
-          }
+        if (this._phaseConfirmed(detected, timestampMs)) {
+          this._advanceToPhase(detected);
         }
+      } else {
+        this._resetPhaseCandidate();
       }
+    } else {
+      this._resetPhaseCandidate();
     }
 
     return {
@@ -59,9 +83,12 @@ export class FeedbackEngine {
       phase: this.currentPhase,
       repCount: this.repCount,
       inHold: this.inHold,
-      progress: this._progressToNext(angles),
-      cues: this._evaluateCues(angles),
-      symmetryWarning: this._checkSymmetry(angles),
+      trackingReady: tracking.ready,
+      missingMeasurements: tracking.missingMeasurements,
+      startConfirmed: this.startConfirmed,
+      progress: tracking.ready ? this._progressToNext(angles) : 0,
+      cues: tracking.ready ? this._evaluateCues(angles) : [],
+      symmetryWarning: tracking.ready ? this._checkSymmetry(angles) : null,
     };
   }
 
@@ -99,6 +126,89 @@ export class FeedbackEngine {
     return angles[sideKey] ?? null;
   }
 
+  _trackingStatus(angles) {
+    const requiredKeys = new Set(
+      this.exercise.phases.flatMap((phase) =>
+        Object.keys(phase).filter((key) => key !== "name")
+      )
+    );
+    const missingMeasurements = new Set();
+
+    for (const key of requiredKeys) {
+      const measurement = this._resolve(key, angles);
+      if (
+        !measurement ||
+        measurement.lowConfidence ||
+        !Number.isFinite(measurement.value)
+      ) {
+        missingMeasurements.add(this._resolvedKeyName(key, angles));
+      }
+    }
+
+    // A symmetry check needs both sides. Do not report a bilateral movement as
+    // good when only one side is visible enough to measure.
+    if (this.exercise.symmetry) {
+      const joint = this.exercise.symmetry.joint;
+      const cap = joint[0].toUpperCase() + joint.slice(1);
+      for (const side of ["left", "right"]) {
+        const key = `${side}${cap}`;
+        const measurement = angles[key];
+        if (
+          !measurement ||
+          measurement.lowConfidence ||
+          !Number.isFinite(measurement.value)
+        ) {
+          missingMeasurements.add(key);
+        }
+      }
+    }
+
+    return {
+      ready: missingMeasurements.size === 0,
+      missingMeasurements: [...missingMeasurements],
+    };
+  }
+
+  _resolvedKeyName(key, angles) {
+    if (key in angles) return key;
+    return `${this.side}${key[0].toUpperCase()}${key.slice(1)}`;
+  }
+
+  _phaseConfirmed(phase, timestampMs) {
+    const confirmationMs = this.exercise.phaseConfirmationMs ?? 0;
+    if (confirmationMs <= 0) return true;
+
+    if (this.phaseCandidate !== phase) {
+      this.phaseCandidate = phase;
+      this.phaseCandidateSince = timestampMs;
+      return false;
+    }
+
+    return timestampMs - this.phaseCandidateSince >= confirmationMs;
+  }
+
+  _resetPhaseCandidate() {
+    this.phaseCandidate = null;
+    this.phaseCandidateSince = 0;
+  }
+
+  _advanceToPhase(phase) {
+    this._resetPhaseCandidate();
+    this.stageIdx++;
+    this.currentPhase = phase;
+
+    if (this.stageIdx < this.stages.length - 1) return;
+
+    if (this.exercise.category === "stretch") {
+      // Don't count yet — wait for the UI hold timer to complete.
+      this.inHold = true;
+    } else {
+      this.repCount++;
+      this.stageIdx = 0;
+      this.currentPhase = this.stages[0];
+    }
+  }
+
   // scoring from 0 - 1, base on how well the stage is done, if 1 then can move on to the next stage
   _progressToNext(angles) {
     // if at the final stage of this distance and 
@@ -119,9 +229,14 @@ export class FeedbackEngine {
 
   _evaluateCues(angles) {
     if (!this.exercise.cues) return [];
-    return Object.entries(this.exercise.cues)
-      .filter(([cond]) => this._evalCondition(cond, angles)) // 
-      .map(([, msg]) => msg);
+    const cues = [
+      ...new Set(
+        Object.entries(this.exercise.cues)
+          .filter(([cond]) => this._evalCondition(cond, angles))
+          .map(([, msg]) => msg)
+      ),
+    ];
+    return cues.slice(0, this.exercise.maxCues ?? cues.length);
   }
 
   _evalCondition(cond, angles) {

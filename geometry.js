@@ -61,6 +61,14 @@ export function distance(a, b) {
   return norm(sub(a, b));
 }
 
+function midpoint(a, b) {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+    z: ((a.z ?? 0) + (b.z ?? 0)) / 2,
+  };
+}
+
 /** Absolute difference between two angles (left vs right symmetry), in degrees. */
 export function symmetry(angleLeft, angleRight) {
   if (Number.isNaN(angleLeft) || Number.isNaN(angleRight)) return NaN;
@@ -129,7 +137,93 @@ export function jointAngles(lm, visLm = lm, threshold = VISIBILITY_THRESHOLD) {
     }
   }
 
+  // Half-squat form measurements. These remain confidence-gated like the
+  // standard joint angles so incomplete poses can never produce a green cue.
+  result.torsoLean = _measurement(
+    lm,
+    visLm,
+    ["leftShoulder", "rightShoulder", "leftHip", "rightHip"],
+    (leftShoulder, rightShoulder, leftHip, rightHip) =>
+      _torsoLean(leftShoulder, rightShoulder, leftHip, rightHip),
+    threshold
+  );
+
+  for (const side of ["left", "right"]) {
+    result[`${side}KneeForwardRatio`] = _measurement(
+      lm,
+      visLm,
+      [
+        "nose",
+        "leftShoulder",
+        "rightShoulder",
+        `${side}Knee`,
+        `${side}Ankle`,
+        `${side}FootIndex`,
+      ],
+      (nose, leftShoulder, rightShoulder, knee, ankle, toe) =>
+        _kneeForwardRatio(
+          nose,
+          leftShoulder,
+          rightShoulder,
+          knee,
+          ankle,
+          toe
+        ),
+      threshold
+    );
+  }
+
   return result;
+}
+
+function _measurement(lm, visLm, keys, calculate, threshold) {
+  const weakPoints = keys.filter((key) => !isVisible(visLm[LM[key]], threshold));
+  if (weakPoints.length > 0) {
+    return { value: NaN, lowConfidence: true, weakPoints };
+  }
+
+  return {
+    value: calculate(...keys.map((key) => lm[LM[key]])),
+    lowConfidence: false,
+    weakPoints: [],
+  };
+}
+
+// Degrees the shoulder-to-hip line leans away from vertical (0° = upright).
+function _torsoLean(leftShoulder, rightShoulder, leftHip, rightHip) {
+  const shoulderMid = midpoint(leftShoulder, rightShoulder);
+  const hipMid = midpoint(leftHip, rightHip);
+  const trunk = sub(shoulderMid, hipMid);
+  const trunkLength = norm(trunk);
+  if (trunkLength === 0) return NaN;
+  const verticalShare = Math.min(1, Math.abs(trunk.y) / trunkLength);
+  return (Math.acos(verticalShare) * 180) / Math.PI;
+}
+
+// How far the knee projects beyond the toe in the body's facing direction,
+// divided by shin length. A body-relative ratio is more portable across users
+// than a raw distance in metres.
+function _kneeForwardRatio(
+  nose,
+  leftShoulder,
+  rightShoulder,
+  knee,
+  ankle,
+  toe
+) {
+  const shoulderMid = midpoint(leftShoulder, rightShoulder);
+  const facing = {
+    x: nose.x - shoulderMid.x,
+    y: 0,
+    z: (nose.z ?? 0) - shoulderMid.z,
+  };
+  const facingLength = norm(facing);
+  const shinLength = distance(knee, ankle);
+  if (facingLength === 0 || shinLength === 0) return NaN;
+
+  const kneeFromToe = sub(knee, toe);
+  const forwardDistance = dot(kneeFromToe, facing) / facingLength;
+  return forwardDistance / shinLength;
 }
 
 // Degrees the foot is inclined above horizontal: 0° when flat, ~20–40° on tiptoe.
