@@ -36,8 +36,11 @@
     </nav>
 
     <div class="header-actions">
-      <button class="text-button profile-header-button" type="button" data-open="profile-modal">
-        My profile
+      <button class="text-button profile-header-button" id="headerSignIn" type="button" data-open="auth-modal">
+        Sign in
+      </button>
+      <button class="text-button profile-header-button" id="headerSignOut" type="button" style="display:none" onclick="window.pvLogout()">
+        Sign out
       </button>
       <button class="text-button" type="button" data-open="therapist-view">
         Therapist view
@@ -62,8 +65,11 @@
     <a href="#practice">Exercise guide</a>
     <a href="#care-team">For care teams</a>
     <a href="#safety">Safety</a>
-    <button class="text-button mobile-profile-button" type="button" data-open="profile-modal">
-      My personal profile
+    <button class="text-button mobile-profile-button" id="mobileSignIn" type="button" data-open="auth-modal">
+      Sign in
+    </button>
+    <button class="text-button mobile-profile-button" id="mobileSignOut" type="button" style="display:none" onclick="window.pvLogout()">
+      Sign out
     </button>
     <button class="button button-dark" type="button" data-open="plan-modal">
       Create my plan
@@ -421,6 +427,25 @@
 
           <ul id="cueList" class="cue-list" aria-label="Live coaching cues"></ul>
           <div id="symWarning" class="sym-warning hidden"></div>
+
+          <!-- Pain check-in — shown after a session is logged -->
+          <div id="painCheckin" class="pain-checkin hidden" aria-live="polite">
+            <p class="pain-checkin-label">How is your pain right now? <span>(0 = none, 10 = severe)</span></p>
+            <div class="pain-checkin-buttons">
+              <button type="button" data-pain="0">0</button>
+              <button type="button" data-pain="1">1</button>
+              <button type="button" data-pain="2">2</button>
+              <button type="button" data-pain="3">3</button>
+              <button type="button" data-pain="4">4</button>
+              <button type="button" data-pain="5">5</button>
+              <button type="button" data-pain="6">6</button>
+              <button type="button" data-pain="7">7</button>
+              <button type="button" data-pain="8">8</button>
+              <button type="button" data-pain="9">9</button>
+              <button type="button" data-pain="10">10</button>
+            </div>
+            <button type="button" id="painSkip" class="text-button">Skip</button>
+          </div>
           <div id="trackingWarning" class="tracking-warning hidden"></div>
 
           <button id="toggle" class="button button-coral camera-button" disabled>
@@ -975,6 +1000,68 @@
     <p><strong>Consultation reserved</strong>Wednesday 22 July at 11:00 with Mei Lin</p>
   </div>
 
+  <!-- Auth modal -->
+  <div class="modal-shell" id="auth-modal" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <section class="modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <p class="eyebrow">PhysioVision</p>
+      <h2 id="auth-title">Sign in or create account</h2>
+
+      <div class="auth-tabs" style="display:flex;gap:0.75rem;margin-bottom:1.25rem;">
+        <button class="button button-coral" id="authTabLogin" type="button">Sign in</button>
+        <button class="button button-light" id="authTabRegister" type="button">Create account</button>
+      </div>
+
+      <!-- Login form -->
+      <form id="loginForm">
+        <div class="field-grid">
+          <label style="grid-column:1/-1">
+            <span>Email</span>
+            <input type="email" name="email" required placeholder="you@example.com" autocomplete="email" />
+          </label>
+          <label style="grid-column:1/-1">
+            <span>Password</span>
+            <input type="password" name="password" required placeholder="••••••••" autocomplete="current-password" />
+          </label>
+        </div>
+        <p id="loginError" style="color:#e05;margin:.5rem 0;display:none;"></p>
+        <button class="button button-coral full-button" type="submit">Sign in →</button>
+      </form>
+
+      <!-- Register form (hidden by default) -->
+      <form id="registerForm" style="display:none;">
+        <div class="field-grid">
+          <label>
+            <span>First name</span>
+            <input type="text" name="firstName" required placeholder="Sarah" autocomplete="given-name" />
+          </label>
+          <label>
+            <span>Last name</span>
+            <input type="text" name="lastName" required placeholder="Lee" autocomplete="family-name" />
+          </label>
+          <label style="grid-column:1/-1">
+            <span>Email</span>
+            <input type="email" name="email" required placeholder="you@example.com" autocomplete="email" />
+          </label>
+          <label style="grid-column:1/-1">
+            <span>Password</span>
+            <input type="password" name="password" required minlength="6" placeholder="At least 6 characters" autocomplete="new-password" />
+          </label>
+          <label style="grid-column:1/-1">
+            <span>I am a</span>
+            <select name="role">
+              <option value="patient">Patient</option>
+              <option value="clinician">Physiotherapist / Clinician</option>
+            </select>
+          </label>
+        </div>
+        <p id="registerError" style="color:#e05;margin:.5rem 0;display:none;"></p>
+        <button class="button button-coral full-button" type="submit">Create account →</button>
+      </form>
+    </section>
+  </div>
+
+  <script type="module" src="auth.js"></script>
   <script type="module" src="ui.js"></script>
   <script type="module" src="exercise-library.js"></script>
   <script type="module" src="main.js"></script>

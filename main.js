@@ -16,6 +16,7 @@ import {
   saveCalibration,
   validateCalibrationCapture,
 } from "./personalization.js";
+import { postSession, postPainCheckin, postCalibration, isLoggedIn } from "./api.js";
 
 // ── EMA smoother ─────────────────────────────────────────────────────────────
 
@@ -85,6 +86,12 @@ const calibrationCancel     = document.getElementById("calibrationCancel");
 
 let profile = loadProfile();
 let poseLandmarker = null;
+let sessionStartedAt = null;
+
+// Accumulated per-session stats (reset on each camera start)
+const sessionCueCounts = {};
+let sessionSymmetryWarnings = 0;
+const sessionAngleStats = {}; // {angleName: {min, max, sum, count}}
 
 // ── Hold timer state ──────────────────────────────────────────────────────────
 let holdInterval  = null;
@@ -149,6 +156,7 @@ renderStaticPhaseFlow(engine);
 renderPersonalization();
 
 exSelect.addEventListener("change", () => {
+  flushSession();
   cancelCalibration();
   engine.changeExercise(
     exSelect.value,
@@ -336,6 +344,18 @@ function renderFrame() {
 
 function updateFeedbackPanel(angles, timestampMs) {
   const fb = engine.update(angles, timestampMs);
+
+  // Accumulate session stats for backend POST
+  fb.cues.forEach(cue => { sessionCueCounts[cue] = (sessionCueCounts[cue] ?? 0) + 1; });
+  if (fb.symmetryWarning) sessionSymmetryWarnings++;
+  Object.entries(angles).forEach(([key, a]) => {
+    if (a.lowConfidence || !Number.isFinite(a.value)) return;
+    const s = sessionAngleStats[key] ?? (sessionAngleStats[key] = { min: Infinity, max: -Infinity, sum: 0, count: 0 });
+    s.min = Math.min(s.min, a.value);
+    s.max = Math.max(s.max, a.value);
+    s.sum += a.value;
+    s.count++;
+  });
 
   // Rep counter
   repCountEl.textContent = fb.repCount;
@@ -540,6 +560,17 @@ calibrationAction.addEventListener("click", () => {
     beginCalibrationCapture("target");
   } else if (calibrationSession.step === "result" && calibrationDraft) {
     saveCalibration(calibrationDraft);
+    if (isLoggedIn()) {
+      postCalibration({
+        exercise:             calibrationDraft.exerciseId,
+        affected_side:        calibrationDraft.affectedSide,
+        captured_at:          calibrationDraft.capturedAt,
+        start_measurements:   calibrationDraft.start,
+        target_measurements:  calibrationDraft.target,
+        phase_ranges:         calibrationDraft.phaseRanges,
+        natural_knee_difference: calibrationDraft.naturalKneeDifference,
+      }).catch(() => {});
+    }
     engine.changeExercise(
       exSelect.value,
       sideSelect.value,
@@ -783,6 +814,10 @@ async function activateCameraGuide() {
     statusEl.textContent = "Starting camera…";
     await startCamera();
     running = true;
+    sessionStartedAt = new Date().toISOString();
+    Object.keys(sessionCueCounts).forEach(k => delete sessionCueCounts[k]);
+    Object.keys(sessionAngleStats).forEach(k => delete sessionAngleStats[k]);
+    sessionSymmetryWarnings = 0;
     cameraStage?.classList.add("camera-active");
     toggleBtn.innerHTML = 'Stop camera guide <span aria-hidden="true">■</span>';
     toggleBtn.disabled = false;
@@ -808,7 +843,75 @@ function deactivateCameraGuide() {
   toggleBtn.innerHTML = 'Start camera guide <span aria-hidden="true">→</span>';
   statusEl.textContent = "Stopped";
   setFeedbackBanner("ready");
+
+  flushSession();
+  showPainCheckin();
 }
+
+function flushSession() {
+  if (!isLoggedIn() || engine.repCount === 0 || !sessionStartedAt) return;
+  const endedAt = new Date().toISOString();
+  const ex = engine.exercise;
+  const cuesTriggered = Object.entries(sessionCueCounts).map(
+    ([cue_text, trigger_count]) => ({ cue_text, trigger_count })
+  );
+  const angleSummaries = {};
+  Object.entries(sessionAngleStats).forEach(([key, s]) => {
+    if (s.count > 0) {
+      angleSummaries[key] = {
+        min:  Math.round(s.min * 10) / 10,
+        max:  Math.round(s.max * 10) / 10,
+        mean: Math.round((s.sum / s.count) * 10) / 10,
+      };
+    }
+  });
+
+  postSession({
+    exercise:                ex.id,
+    started_at:              sessionStartedAt,
+    ended_at:                endedAt,
+    sets_completed:          1,
+    reps_completed:          engine.repCount,
+    reps_target:             ex.prescription?.reps ?? 10,
+    sets_target:             ex.prescription?.sets ?? 3,
+    affected_side:           profile.focusSide ?? "right",
+    cues_triggered:          cuesTriggered,
+    symmetry_warnings_count: sessionSymmetryWarnings,
+    angle_summaries:         angleSummaries,
+  }).catch(() => {});
+
+  // Reset for the next exercise
+  sessionStartedAt = new Date().toISOString();
+  Object.keys(sessionCueCounts).forEach(k => delete sessionCueCounts[k]);
+  Object.keys(sessionAngleStats).forEach(k => delete sessionAngleStats[k]);
+  sessionSymmetryWarnings = 0;
+}
+
+// ── Pain check-in ─────────────────────────────────────────────────────────────
+const painCheckinEl = document.getElementById("painCheckin");
+const painSkipBtn   = document.getElementById("painSkip");
+
+function showPainCheckin() {
+  if (!isLoggedIn()) return;
+  painCheckinEl.classList.remove("hidden");
+}
+
+function hidePainCheckin() {
+  painCheckinEl.classList.add("hidden");
+}
+
+painCheckinEl.querySelectorAll("[data-pain]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const level = parseInt(btn.dataset.pain, 10);
+    postPainCheckin({
+      pain_level: level,
+      checked_at: new Date().toISOString(),
+    }).catch(() => {});
+    hidePainCheckin();
+  });
+});
+
+painSkipBtn.addEventListener("click", hidePainCheckin);
 
 toggleBtn.addEventListener("click", async () => {
   if (running) deactivateCameraGuide();

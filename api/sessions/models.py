@@ -66,6 +66,11 @@ class Session(TimestampedModel):
         default=list,
         help_text="[{cue_text: str, trigger_count: int}]",
     )
+    angle_summaries = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="{angleName: {min: float, max: float, mean: float}} — per-session angle stats for trend tracking",
+    )
     symmetry_warnings_count   = models.PositiveSmallIntegerField(default=0)
     low_confidence_frames_pct = models.DecimalField(
         max_digits=5, decimal_places=1,

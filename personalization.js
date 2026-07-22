@@ -1,3 +1,5 @@
+import { patchMe, isLoggedIn } from "./api.js";
+
 const PROFILE_KEY = "physiovision.profile.v1";
 const CALIBRATION_KEY = "physiovision.calibrations.v1";
 
@@ -50,6 +52,19 @@ export function saveProfile(profile) {
   window.dispatchEvent(
     new CustomEvent("physiovision:profile-updated", { detail: next })
   );
+
+  // Sync to backend — fire and forget, localStorage is the source of truth locally
+  if (isLoggedIn()) {
+    patchMe({
+      goal:            next.goal,
+      activity_level:  next.activity,
+      mobility_status: next.mobility,
+      focus_side:      next.focusSide,
+      cue_style:       next.cueStyle,
+      care_path:       next.carePath,
+    }).catch(() => {});
+  }
+
   return next;
 }
 

@@ -14,6 +14,7 @@ class SessionSerializer(serializers.ModelSerializer):
             'sets_completed', 'reps_completed', 'reps_target', 'sets_target',
             'affected_side', 'quality_score', 'pain_level', 'notes',
             'cues_triggered', 'symmetry_warnings_count', 'low_confidence_frames_pct',
+            'angle_summaries',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'duration_seconds', 'created_at', 'updated_at']

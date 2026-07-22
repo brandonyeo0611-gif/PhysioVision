@@ -3876,3 +3876,55 @@ details.metrics summary {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Pain check-in ─────────────────────────────────────────── */
+.pain-checkin {
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface-2, #f4f7f6);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.pain-checkin.hidden { display: none; }
+.pain-checkin-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+}
+.pain-checkin-label span {
+  font-weight: 400;
+  color: #666;
+}
+.pain-checkin-buttons {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.pain-checkin-buttons button {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 8px;
+  border: 1.5px solid #d0d8d4;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.pain-checkin-buttons button:hover {
+  background: #e8f4ef;
+  border-color: #4caf80;
+}
+.pain-checkin-buttons button[data-pain="8"],
+.pain-checkin-buttons button[data-pain="9"],
+.pain-checkin-buttons button[data-pain="10"] {
+  border-color: #e8a0a0;
+  color: #c0392b;
+}
+#painSkip {
+  font-size: 0.8rem;
+  color: #888;
+  align-self: flex-start;
+}
