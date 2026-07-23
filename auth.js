@@ -135,14 +135,46 @@ async function seedProfileFromApi() {
     const me = await getMe();
     if (me.profile) {
       const p = me.profile;
+      const goalLabels = {
+        stronger_knees: "Stronger knees",
+        better_balance: "Better balance",
+        less_stiffness: "Move with less stiffness",
+        stay_active: "Stay active",
+      };
+      const activityLabels = {
+        lightly_active: "Lightly active",
+        mostly_seated: "Mostly seated",
+        active_most_days: "Active most days",
+      };
+      const mobilityLabels = {
+        independent: "Independent",
+        walking_aid: "Use a walking aid",
+        needs_person: "Need another person nearby",
+      };
       const mapped = {
         name:      `${me.first_name} ${me.last_name}`.trim(),
-        goal:      p.goal             ?? "",
-        activity:  p.activity_level   ?? "",
-        mobility:  p.mobility_status  ?? "",
+        goal:      goalLabels[p.goal]             ?? p.goal ?? "",
+        activity:  activityLabels[p.activity_level] ?? p.activity_level ?? "",
+        mobility:  mobilityLabels[p.mobility_status] ?? p.mobility_status ?? "",
         focusSide: p.focus_side       ?? "right",
         cueStyle:  p.cue_style        ?? "gentle",
         carePath:  p.care_path        ?? "wellness",
+        wellnessScreening: {
+          version: 1,
+          status: p.wellness_screening_status ?? "pending",
+          answers: {
+            notTreatingCondition:
+              p.wellness_screening_answers?.not_treating_condition === true,
+            noClinicianRestrictions:
+              p.wellness_screening_answers?.no_clinician_restrictions === true,
+            generalWellnessGoal:
+              p.wellness_screening_answers?.general_wellness_goal === true,
+            noConcerningSymptoms:
+              p.wellness_screening_answers?.no_concerning_symptoms === true,
+          },
+          reviewReasons: [],
+          screenedAt: p.wellness_screened_at ?? null,
+        },
       };
       localStorage.setItem("physiovision.profile.v1", JSON.stringify(mapped));
       window.dispatchEvent(new CustomEvent("physiovision:profile-updated", { detail: mapped }));

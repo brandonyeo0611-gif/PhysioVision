@@ -1,7 +1,27 @@
-import { patchMe, isLoggedIn } from "./api.js";
+import {
+  isLoggedIn,
+  patchMe,
+  postWellnessScreening,
+} from "./api.js";
 
 const PROFILE_KEY = "physiovision.profile.v1";
 const CALIBRATION_KEY = "physiovision.calibrations.v1";
+const GOAL_API_VALUES = Object.freeze({
+  "Stronger knees": "stronger_knees",
+  "Better balance": "better_balance",
+  "Move with less stiffness": "less_stiffness",
+  "Stay active": "stay_active",
+});
+const ACTIVITY_API_VALUES = Object.freeze({
+  "Lightly active": "lightly_active",
+  "Mostly seated": "mostly_seated",
+  "Active most days": "active_most_days",
+});
+const MOBILITY_API_VALUES = Object.freeze({
+  Independent: "independent",
+  "Use a walking aid": "walking_aid",
+  "Need another person nearby": "needs_person",
+});
 
 const DEFAULT_PROFILE = Object.freeze({
   name: "",
@@ -12,6 +32,13 @@ const DEFAULT_PROFILE = Object.freeze({
   focusSide: "right",
   cueStyle: "gentle",
   carePath: "wellness",
+  wellnessScreening: {
+    version: 1,
+    status: "pending",
+    answers: {},
+    reviewReasons: [],
+    screenedAt: null,
+  },
 });
 
 function readJson(key, fallback) {
@@ -56,13 +83,23 @@ export function saveProfile(profile) {
   // Sync to backend — fire and forget, localStorage is the source of truth locally
   if (isLoggedIn()) {
     patchMe({
-      goal:            next.goal,
-      activity_level:  next.activity,
-      mobility_status: next.mobility,
+      goal:            GOAL_API_VALUES[next.goal] ?? next.goal,
+      activity_level:  ACTIVITY_API_VALUES[next.activity] ?? next.activity,
+      mobility_status: MOBILITY_API_VALUES[next.mobility] ?? next.mobility,
       focus_side:      next.focusSide,
       cue_style:       next.cueStyle,
       care_path:       next.carePath,
     }).catch(() => {});
+
+    if (Object.hasOwn(profile, "wellnessScreening")) {
+      const answers = next.wellnessScreening?.answers ?? {};
+      postWellnessScreening({
+        not_treating_condition: answers.notTreatingCondition === true,
+        no_clinician_restrictions: answers.noClinicianRestrictions === true,
+        general_wellness_goal: answers.generalWellnessGoal === true,
+        no_concerning_symptoms: answers.noConcerningSymptoms === true,
+      }).catch(() => {});
+    }
   }
 
   return next;

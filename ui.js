@@ -3,6 +3,11 @@ import {
   loadProfile,
   saveProfile,
 } from "./personalization.js";
+import {
+  buildConservativeWellnessPlan,
+  evaluateWellnessScreening,
+  WELLNESS_SCREENING_KEYS,
+} from "./wellness-screening.js";
 
 (() => {
   const body = document.body;
@@ -15,9 +20,14 @@ import {
   const planSteps = planForm ? [...planForm.querySelectorAll(".form-step")] : [];
   const progressBars = [...document.querySelectorAll(".modal-progress span")];
   const toast = document.getElementById("toast");
+  const wellnessEligibleOutcome = document.getElementById("wellnessEligibleOutcome");
+  const wellnessReviewOutcome = document.getElementById("wellnessReviewOutcome");
+  const wellnessReviewReasons = document.getElementById("wellnessReviewReasons");
+  const generatedWellnessPlan = document.getElementById("generatedWellnessPlan");
   let activeModal = null;
   let previousFocus = null;
   let planStep = 1;
+  let activeWellnessPlan = null;
   let toastTimer;
 
   const setHeaderState = () => {
@@ -58,7 +68,11 @@ import {
     body.classList.add("modal-open");
 
     if (id === "plan-modal") {
-      if (hasSavedProfile()) fillFormFromProfile(planForm, loadProfile());
+      if (hasSavedProfile()) {
+        const savedProfile = loadProfile();
+        fillFormFromProfile(planForm, savedProfile);
+        fillWellnessScreening(planForm, savedProfile.wellnessScreening);
+      }
       showPlanStep(1);
     } else if (id === "profile-modal") {
       fillFormFromProfile(profileForm, loadProfile());
@@ -128,19 +142,90 @@ import {
     activeStep?.querySelector("input, button, select, textarea")?.focus();
   }
 
+  function validatePlanStep(step) {
+    const required = [...step.querySelectorAll("[required]")];
+    const invalid = required.find((field) => !field.checkValidity());
+    if (!invalid) return true;
+    invalid.reportValidity();
+    invalid.focus();
+    return false;
+  }
+
+  function readWellnessScreening(formData) {
+    return Object.fromEntries(
+      WELLNESS_SCREENING_KEYS.map((key) => [
+        key,
+        formData.get(key) === "true",
+      ])
+    );
+  }
+
+  function renderWellnessOutcome(screening) {
+    const eligible = screening.status === "eligible";
+    wellnessEligibleOutcome.classList.toggle("hidden", !eligible);
+    wellnessReviewOutcome.classList.toggle("hidden", eligible);
+    if (!eligible) {
+      wellnessReviewReasons.innerHTML = "";
+      screening.reviewReasons.forEach((reason) => {
+        const item = document.createElement("li");
+        item.textContent = reason;
+        wellnessReviewReasons.appendChild(item);
+      });
+    }
+  }
+
+  function renderWellnessPlan(plan, age) {
+    activeWellnessPlan = plan;
+    generatedWellnessPlan.innerHTML = "";
+    plan.days.forEach((day) => {
+      const row = document.createElement("div");
+      row.className = "generated-day";
+
+      const dayLabel = document.createElement("span");
+      dayLabel.textContent = day.day;
+      const detail = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = day.title;
+      const exercises = document.createElement("small");
+      exercises.textContent = day.exercises;
+      const duration = document.createElement("em");
+      duration.textContent = day.duration;
+
+      detail.append(title, exercises);
+      row.append(dayLabel, detail, duration);
+      generatedWellnessPlan.appendChild(row);
+    });
+
+    const summary = document.getElementById("planSummary");
+    if (summary) {
+      summary.textContent = `Based on your confirmed wellness pathway${
+        age ? ` at age ${age}` : ""
+      }, this conservative routine focuses on ${plan.goal.toLowerCase()}.`;
+    }
+  }
+
   planForm?.querySelectorAll("[data-next-step]").forEach((button) => {
     button.addEventListener("click", () => {
       if (planStep === 2) {
-        const visibleRequired = [
-          ...planSteps[1].querySelectorAll("[required]"),
-        ];
-        const invalid = visibleRequired.find((field) => !field.checkValidity());
-        if (invalid) {
-          invalid.reportValidity();
-          invalid.focus();
+        const formData = new FormData(planForm);
+        if (!validatePlanStep(planSteps[1])) return;
+        const screening = evaluateWellnessScreening(
+          readWellnessScreening(formData)
+        );
+        saveProfile({
+          carePath:
+            screening.status === "eligible" ? "wellness" : "needs_review",
+          wellnessScreening: screening,
+        });
+        renderWellnessOutcome(screening);
+        if (screening.status !== "eligible") {
+          showPlanStep(4);
           return;
         }
+      }
 
+      if (planStep === 3) {
+        if (!validatePlanStep(planSteps[2])) return;
         const formData = new FormData(planForm);
         const goal = formData.get("goal") || "moving with confidence";
         const age = formData.get("age");
@@ -151,13 +236,13 @@ import {
           activity: formData.get("activity"),
           focusSide: formData.get("focusSide"),
           cueStyle: formData.get("cueStyle"),
+          carePath: "wellness",
         });
-        const summary = document.getElementById("planSummary");
-        if (summary) {
-          summary.textContent = `Based on your profile${
-            age ? ` at age ${age}` : ""
-          }, we’ve created a gradual routine focused on ${String(goal).toLowerCase()}.`;
-        }
+        renderWellnessPlan(
+          buildConservativeWellnessPlan(String(goal)),
+          age
+        );
+        renderWellnessOutcome({ status: "eligible" });
       }
       showPlanStep(planStep + 1);
     });
@@ -168,8 +253,18 @@ import {
   });
 
   document.querySelector("[data-start-plan]")?.addEventListener("click", () => {
+    const firstExerciseId = activeWellnessPlan?.days?.[0]?.exerciseIds?.[0];
+    const exerciseSelect = document.getElementById("exerciseSelect");
+    if (firstExerciseId && exerciseSelect) {
+      exerciseSelect.value = firstExerciseId;
+      exerciseSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    }
     closeModal();
     document.getElementById("practice")?.scrollIntoView({ behavior: "smooth" });
+  });
+
+  document.querySelector("[data-review-screening]")?.addEventListener("click", () => {
+    showPlanStep(2);
   });
 
   profileForm?.addEventListener("submit", (event) => {
@@ -188,6 +283,17 @@ import {
         field.value = String(value);
       }
     }
+  }
+
+  function fillWellnessScreening(form, screening) {
+    if (!form || !screening?.answers) return;
+    WELLNESS_SCREENING_KEYS.forEach((key) => {
+      if (typeof screening.answers[key] !== "boolean") return;
+      const selector =
+        `input[name="${key}"][value="${String(screening.answers[key])}"]`;
+      const field = form.querySelector(selector);
+      if (field) field.checked = true;
+    });
   }
 
   document.querySelectorAll(".date-options, .time-options").forEach((group) => {

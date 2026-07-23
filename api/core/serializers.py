@@ -2,7 +2,14 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
-from .models import ClinicianProfile, PatientProfile, User, UserRole
+from .models import (
+    CarePath,
+    ClinicianProfile,
+    PatientProfile,
+    User,
+    UserRole,
+    WellnessScreeningStatus,
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -84,9 +91,34 @@ class PatientProfileSerializer(serializers.ModelSerializer):
             'id', 'user', 'goal', 'activity_level', 'mobility_status',
             'focus_side', 'cue_style', 'care_path',
             'height_cm', 'weight_kg', 'medical_history', 'low_risk_acknowledged',
+            'wellness_screening_status', 'wellness_screening_answers',
+            'wellness_screened_at',
             'primary_clinician', 'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'user', 'wellness_screening_status',
+            'wellness_screening_answers', 'wellness_screened_at',
+            'created_at', 'updated_at',
+        ]
+
+    def validate_care_path(self, value):
+        if (
+            value == CarePath.WELLNESS
+            and self.instance
+            and self.instance.wellness_screening_status
+            != WellnessScreeningStatus.ELIGIBLE
+        ):
+            raise serializers.ValidationError(
+                "Complete the general wellness screening before selecting this pathway."
+            )
+        return value
+
+
+class WellnessScreeningSerializer(serializers.Serializer):
+    not_treating_condition = serializers.BooleanField()
+    no_clinician_restrictions = serializers.BooleanField()
+    general_wellness_goal = serializers.BooleanField()
+    no_concerning_symptoms = serializers.BooleanField()
 
 
 class ClinicianProfileSerializer(serializers.ModelSerializer):

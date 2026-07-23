@@ -74,6 +74,10 @@ export async function patchMe(fields) {
   return request("PATCH", "/auth/me/", fields);
 }
 
+export async function postWellnessScreening(answers) {
+  return request("POST", "/auth/wellness-screening/", answers);
+}
+
 // ── Sessions ──────────────────────────────────────────────────
 
 export async function postSession(session) {

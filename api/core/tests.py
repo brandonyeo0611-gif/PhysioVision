@@ -2,7 +2,13 @@ from unittest.mock import patch
 
 from rest_framework.test import APITestCase
 
-from .models import User, UserRole
+from .models import (
+    CarePath,
+    PatientProfile,
+    User,
+    UserRole,
+    WellnessScreeningStatus,
+)
 
 
 class AgentChatViewTests(APITestCase):
@@ -84,3 +90,85 @@ class AgentChatViewTests(APITestCase):
 
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.data['detail'], 'The assistant is unavailable.')
+
+
+class WellnessScreeningViewTests(APITestCase):
+    endpoint = '/api/auth/wellness-screening/'
+
+    def make_patient(self):
+        user = User.objects.create_user(
+            username='wellness@example.com',
+            email='wellness@example.com',
+            password='test-password',
+            role=UserRole.PATIENT,
+        )
+        PatientProfile.objects.create(user=user)
+        return user
+
+    def answers(self, **overrides):
+        answers = {
+            'not_treating_condition': True,
+            'no_clinician_restrictions': True,
+            'general_wellness_goal': True,
+            'no_concerning_symptoms': True,
+        }
+        answers.update(overrides)
+        return answers
+
+    def test_authentication_is_required(self):
+        response = self.client.post(
+            self.endpoint,
+            self.answers(),
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_all_confirmations_select_wellness_path(self):
+        user = self.make_patient()
+        self.client.force_authenticate(user)
+
+        response = self.client.post(
+            self.endpoint,
+            self.answers(),
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        user.patient_profile.refresh_from_db()
+        self.assertEqual(
+            user.patient_profile.wellness_screening_status,
+            WellnessScreeningStatus.ELIGIBLE,
+        )
+        self.assertEqual(user.patient_profile.care_path, CarePath.WELLNESS)
+        self.assertTrue(user.patient_profile.low_risk_acknowledged)
+
+    def test_any_unclear_answer_routes_to_review(self):
+        user = self.make_patient()
+        self.client.force_authenticate(user)
+
+        response = self.client.post(
+            self.endpoint,
+            self.answers(no_concerning_symptoms=False),
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        user.patient_profile.refresh_from_db()
+        self.assertEqual(response.data['status'], WellnessScreeningStatus.NEEDS_REVIEW)
+        self.assertEqual(user.patient_profile.care_path, CarePath.NEEDS_REVIEW)
+        self.assertFalse(user.patient_profile.low_risk_acknowledged)
+
+    def test_every_answer_is_required(self):
+        user = self.make_patient()
+        self.client.force_authenticate(user)
+        incomplete = self.answers()
+        incomplete.pop('no_concerning_symptoms')
+
+        response = self.client.post(
+            self.endpoint,
+            incomplete,
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('no_concerning_symptoms', response.data)

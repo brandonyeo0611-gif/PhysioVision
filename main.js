@@ -32,6 +32,7 @@ import {
   parseRecoveryStatus,
   voiceGuidance,
 } from "./voice-guidance.js";
+import { isWellnessEligible } from "./wellness-screening.js";
 
 // ── EMA smoother ─────────────────────────────────────────────────────────────
 
@@ -1260,13 +1261,31 @@ function setFeedbackBanner(state, cue = "") {
 
 // ── Controls ──────────────────────────────────────────────────────────────────
 
-async function activateCameraGuide() {
-  if (running) return true;
-  if (exerciseUsesHand(engine.exercise) && !handLandmarker) {
-    statusEl.textContent = "The hand-tracking model is unavailable";
+function hasPathwayAccess() {
+  if (profile.carePath === "needs_review") {
+    statusEl.textContent = "Professional review is recommended before self-guided exercise";
     setFeedbackBanner(
       "tracking",
-      "Reload with an internet connection or choose a Pose-only exercise"
+      "A general wellness plan was not created from your screening answers"
+    );
+    voiceGuidance.speak(
+      "Please get professional guidance before starting self-guided exercise.",
+      { key: "wellness-needs-review", interrupt: true }
+    );
+    return false;
+  }
+  if (
+    profile.carePath === "wellness" &&
+    !isWellnessEligible(profile)
+  ) {
+    statusEl.textContent = "Complete the general wellness safety screen first";
+    setFeedbackBanner(
+      "tracking",
+      "Open Create your first plan and complete the wellness questions"
+    );
+    voiceGuidance.speak(
+      "Please complete the general wellness safety questions before starting.",
+      { key: "wellness-screening-required", interrupt: true }
     );
     return false;
   }
@@ -1275,6 +1294,20 @@ async function activateCameraGuide() {
     setFeedbackBanner(
       "tracking",
       "Choose an exercise available for your care path or update your clinician plan"
+    );
+    return false;
+  }
+  return true;
+}
+
+async function activateCameraGuide() {
+  if (running) return true;
+  if (!hasPathwayAccess()) return false;
+  if (exerciseUsesHand(engine.exercise) && !handLandmarker) {
+    statusEl.textContent = "The hand-tracking model is unavailable";
+    setFeedbackBanner(
+      "tracking",
+      "Reload with an internet connection or choose a Pose-only exercise"
     );
     return false;
   }
@@ -1601,6 +1634,7 @@ painSkipBtn.addEventListener("click", () => {
 
 toggleBtn.addEventListener("click", async () => {
   if (running) deactivateCameraGuide();
+  else if (!hasPathwayAccess()) return;
   else if (isLoggedIn()) showPainCheckin("before", { startAfter: true });
   else await activateCameraGuide();
 });

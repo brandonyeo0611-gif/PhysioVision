@@ -93,8 +93,15 @@ class CueStyle(models.TextChoices):
 
 
 class CarePath(models.TextChoices):
-    WELLNESS  = "wellness",  _("General wellness")
-    CLINICIAN = "clinician", _("Physiotherapist-prescribed rehabilitation")
+    WELLNESS     = "wellness",     _("General wellness")
+    CLINICIAN    = "clinician",    _("Physiotherapist-prescribed rehabilitation")
+    NEEDS_REVIEW = "needs_review", _("Professional review needed")
+
+
+class WellnessScreeningStatus(models.TextChoices):
+    PENDING = "pending", _("Not completed")
+    ELIGIBLE = "eligible", _("Eligible for general wellness")
+    NEEDS_REVIEW = "needs_review", _("Professional review needed")
 
 
 class PatientProfile(TimestampedModel):
@@ -111,12 +118,19 @@ class PatientProfile(TimestampedModel):
     mobility_status = models.CharField(max_length=25, choices=MobilityStatus.choices, default=MobilityStatus.INDEPENDENT)
     focus_side      = models.CharField(max_length=5, choices=FocusSide.choices, default=FocusSide.RIGHT)
     cue_style       = models.CharField(max_length=10, choices=CueStyle.choices, default=CueStyle.GENTLE)
-    care_path       = models.CharField(max_length=10, choices=CarePath.choices, default=CarePath.WELLNESS)
+    care_path       = models.CharField(max_length=12, choices=CarePath.choices, default=CarePath.WELLNESS)
 
     height_cm             = models.PositiveSmallIntegerField(null=True, blank=True)
     weight_kg             = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
     medical_history       = models.TextField(blank=True)
     low_risk_acknowledged = models.BooleanField(default=False)
+    wellness_screening_status = models.CharField(
+        max_length=12,
+        choices=WellnessScreeningStatus.choices,
+        default=WellnessScreeningStatus.PENDING,
+    )
+    wellness_screening_answers = models.JSONField(default=dict, blank=True)
+    wellness_screened_at = models.DateTimeField(null=True, blank=True)
 
     # Null for wellness-path users who have no assigned clinician
     primary_clinician = models.ForeignKey(

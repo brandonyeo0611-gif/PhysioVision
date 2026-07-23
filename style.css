@@ -2928,6 +2928,73 @@ details.metrics summary {
   width: 100%;
 }
 
+.wellness-screening {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.wellness-screening fieldset {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--white);
+}
+
+.wellness-screening legend {
+  display: block;
+  width: 100%;
+  margin-bottom: 9px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.wellness-screening label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 7px 9px;
+  border: 1px solid #cfd8d3;
+  border-radius: 8px;
+  color: var(--muted);
+  background: #fafbf9;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wellness-screening label + label {
+  margin-left: 6px;
+}
+
+.wellness-screening label:has(input:checked) {
+  border-color: var(--green);
+  color: var(--ink);
+  background: var(--mint-light);
+}
+
+.wellness-screening input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--green);
+}
+
+.wellness-screening-note {
+  margin: 0 0 18px;
+  padding: 11px 13px;
+  border-left: 3px solid var(--coral);
+  color: var(--muted);
+  background: var(--cream);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3007,6 +3074,11 @@ details.metrics summary {
   font-weight: 800;
 }
 
+.plan-created-icon.review {
+  color: #8c2c21;
+  background: #fbe8e4;
+}
+
 .generated-plan {
   margin-bottom: 16px;
   border-top: 1px solid var(--line);
@@ -3080,8 +3152,32 @@ details.metrics summary {
   margin: 0;
 }
 
+.plan-note.warning {
+  color: #7c3028;
+  background: #fbe8e4;
+}
+
+.wellness-review-outcome ul {
+  margin: 0 0 18px;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .full-button {
   width: 100%;
+}
+
+@media (max-width: 640px) {
+  .wellness-screening label {
+    width: 100%;
+  }
+
+  .wellness-screening label + label {
+    margin-top: 6px;
+    margin-left: 0;
+  }
 }
 
 .profile-modal {

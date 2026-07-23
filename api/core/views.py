@@ -1,5 +1,6 @@
 import logging
 
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -7,12 +8,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .ai import generate_agent_reply
-from .models import UserRole
+from .models import CarePath, UserRole, WellnessScreeningStatus
 from .serializers import (
     ClinicianProfileSerializer,
     LoginSerializer,
     PatientProfileSerializer,
     RegisterSerializer,
+    WellnessScreeningSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -111,4 +113,51 @@ class AgentChatView(APIView):
         return Response({
             'reply': reply,
             'role': request.user.role,
+        })
+
+
+class WellnessScreeningView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if (
+            request.user.role != UserRole.PATIENT
+            or not hasattr(request.user, 'patient_profile')
+        ):
+            return Response(
+                {'detail': 'A patient profile is required.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = WellnessScreeningSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        answers = serializer.validated_data
+        eligible = all(answers.values())
+        screening_status = (
+            WellnessScreeningStatus.ELIGIBLE
+            if eligible
+            else WellnessScreeningStatus.NEEDS_REVIEW
+        )
+
+        profile = request.user.patient_profile
+        profile.wellness_screening_status = screening_status
+        profile.wellness_screening_answers = answers
+        profile.wellness_screened_at = timezone.now()
+        profile.low_risk_acknowledged = eligible
+        profile.care_path = (
+            CarePath.WELLNESS if eligible else CarePath.NEEDS_REVIEW
+        )
+        profile.save(update_fields=[
+            'wellness_screening_status',
+            'wellness_screening_answers',
+            'wellness_screened_at',
+            'low_risk_acknowledged',
+            'care_path',
+            'updated_at',
+        ])
+
+        return Response({
+            'status': screening_status,
+            'care_path': profile.care_path,
+            'screened_at': profile.wellness_screened_at,
         })

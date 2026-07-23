@@ -734,12 +734,12 @@
     <section class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="plan-title">
       <button class="modal-close" type="button" data-close-modal aria-label="Close">×</button>
       <div class="modal-progress">
-        <span class="active"></span><span></span><span></span>
+        <span class="active"></span><span></span><span></span><span></span>
       </div>
 
       <form id="planForm">
         <div class="form-step active" data-step="1">
-          <p class="eyebrow">Step 1 of 3</p>
+          <p class="eyebrow">Step 1 of 4</p>
           <h2 id="plan-title">What would you like to improve?</h2>
           <p class="form-intro">Choose the goal that matters most right now.</p>
           <div class="goal-options">
@@ -770,9 +770,65 @@
         </div>
 
         <div class="form-step" data-step="2">
-          <p class="eyebrow">Step 2 of 3</p>
+          <p class="eyebrow">Step 2 of 4 · General wellness check</p>
+          <h2>Is self-guided wellness the right pathway?</h2>
+          <p class="form-intro">
+            This does not diagnose or medically clear you. Every answer must be
+            “Yes” before the prototype can create a general wellness plan.
+          </p>
+          <div class="wellness-screening">
+            <fieldset>
+              <legend>
+                I am not using this plan to treat a diagnosed condition,
+                injury, or recent surgery.
+              </legend>
+              <label><input type="radio" name="notTreatingCondition" value="true" required /> Yes</label>
+              <label><input type="radio" name="notTreatingCondition" value="false" /> No or not sure</label>
+            </fieldset>
+            <fieldset>
+              <legend>
+                I have not been given movement or exercise restrictions by a
+                doctor or physiotherapist.
+              </legend>
+              <label><input type="radio" name="noClinicianRestrictions" value="true" required /> Yes</label>
+              <label><input type="radio" name="noClinicianRestrictions" value="false" /> No or not sure</label>
+            </fieldset>
+            <fieldset>
+              <legend>
+                I want a general mobility, strength, balance, or activity
+                routine—not rehabilitation treatment.
+              </legend>
+              <label><input type="radio" name="generalWellnessGoal" value="true" required /> Yes</label>
+              <label><input type="radio" name="generalWellnessGoal" value="false" /> No or not sure</label>
+            </fieldset>
+            <fieldset>
+              <legend>
+                I have no new or concerning symptoms such as chest pain,
+                dizziness, sudden weakness, or new numbness.
+              </legend>
+              <label><input type="radio" name="noConcerningSymptoms" value="true" required /> Yes</label>
+              <label><input type="radio" name="noConcerningSymptoms" value="false" /> No or not sure</label>
+            </fieldset>
+          </div>
+          <p class="wellness-screening-note">
+            If any answer is “No or not sure,” no self-guided plan will be
+            generated. The prototype will recommend professional review.
+          </p>
+          <div class="modal-actions">
+            <button class="text-link" type="button" data-prev-step>← Back</button>
+            <button class="button button-dark" type="button" data-next-step>
+              Check my pathway <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-step" data-step="3">
+          <p class="eyebrow">Step 3 of 4</p>
           <h2>Help us fit the plan to you.</h2>
-          <p class="form-intro">This information shapes exercise intensity and safety checks.</p>
+          <p class="form-intro">
+            These preferences select from a conservative, reviewed wellness
+            exercise list. They do not change medical safety limits.
+          </p>
           <div class="field-grid">
             <label>
               <span>Preferred name</span>
@@ -817,17 +873,6 @@
               </select>
             </label>
           </div>
-          <label class="history-field">
-            <span>Relevant medical or injury history</span>
-            <textarea name="history" rows="3" placeholder="For example: knee surgery, falls, heart condition, or none"></textarea>
-          </label>
-          <label class="check-row">
-            <input type="checkbox" name="lowRisk" required />
-            <span>
-              I understand this self-guided plan is for low-risk exercise and I
-              should seek professional advice if I have a health concern.
-            </span>
-          </label>
           <div class="modal-actions">
             <button class="text-link" type="button" data-prev-step>← Back</button>
             <button class="button button-dark" type="button" data-next-step>
@@ -836,37 +881,46 @@
           </div>
         </div>
 
-        <div class="form-step" data-step="3">
-          <div class="plan-created-icon" aria-hidden="true">✓</div>
-          <p class="eyebrow">Your starting plan</p>
-          <h2>Three gentle sessions.<br />One clear goal.</h2>
-          <p class="form-intro" id="planSummary">
-            Based on your profile, we’ve created a gradual knee-strength routine.
-          </p>
-          <div class="generated-plan">
-            <div class="generated-day">
-              <span>Mon</span>
-              <div><strong>Strength & control</strong><small>Half squats · Leg extensions</small></div>
-              <em>12 min</em>
+        <div class="form-step" data-step="4">
+          <div id="wellnessEligibleOutcome">
+            <div class="plan-created-icon" aria-hidden="true">✓</div>
+            <p class="eyebrow">Your conservative starting plan</p>
+            <h2>Three gentle sessions.<br />One clear goal.</h2>
+            <p class="form-intro" id="planSummary">
+              Based on your confirmed wellness pathway, we’ve created a gradual routine.
+            </p>
+            <div class="generated-plan" id="generatedWellnessPlan"></div>
+            <div class="plan-note">
+              <span>i</span>
+              <p>
+                This is a hackathon wellness prototype, not medical clearance.
+                Stop if you feel unwell and seek appropriate professional advice.
+              </p>
             </div>
-            <div class="generated-day">
-              <span>Wed</span>
-              <div><strong>Mobility & balance</strong><small>Heel stretch · Calf raises</small></div>
-              <em>10 min</em>
-            </div>
-            <div class="generated-day">
-              <span>Sat</span>
-              <div><strong>Strength & confidence</strong><small>Leg curls · Half squats</small></div>
-              <em>14 min</em>
-            </div>
+            <button class="button button-coral full-button" type="button" data-start-plan>
+              Start my first session <span aria-hidden="true">→</span>
+            </button>
           </div>
-          <div class="plan-note">
-            <span>i</span>
-            <p>A clinician should review this plan before use if you reported a medical condition or recent injury.</p>
+          <div id="wellnessReviewOutcome" class="wellness-review-outcome hidden">
+            <div class="plan-created-icon review" aria-hidden="true">!</div>
+            <p class="eyebrow">Professional review recommended</p>
+            <h2>No self-guided wellness plan was created.</h2>
+            <p class="form-intro">
+              One or more answers indicate that general wellness may not be the
+              correct pathway. This is not a diagnosis.
+            </p>
+            <ul id="wellnessReviewReasons"></ul>
+            <div class="plan-note warning">
+              <span>i</span>
+              <p>
+                Follow existing clinician instructions. Seek appropriate help
+                for urgent or concerning symptoms.
+              </p>
+            </div>
+            <button class="button button-dark full-button" type="button" data-review-screening>
+              Review my answers
+            </button>
           </div>
-          <button class="button button-coral full-button" type="button" data-start-plan>
-            Start my first session <span aria-hidden="true">→</span>
-          </button>
         </div>
       </form>
     </section>
@@ -927,8 +981,9 @@
           <label>
             <span>Exercise pathway</span>
             <select name="carePath">
-              <option value="wellness">General wellness</option>
+              <option value="wellness">General wellness · screening required</option>
               <option value="clinician">Physiotherapist-prescribed rehabilitation</option>
+              <option value="needs_review">Professional review needed</option>
             </select>
           </label>
           <label>
