@@ -432,10 +432,19 @@
           <ul id="cueList" class="cue-list" aria-label="Live coaching cues"></ul>
           <div id="symWarning" class="sym-warning hidden"></div>
 
-          <!-- Pain check-in — shown after a session is logged -->
-          <div id="painCheckin" class="pain-checkin hidden" aria-live="polite">
-            <p class="pain-checkin-label">How is your pain right now? <span>(0 = none, 10 = severe)</span></p>
-            <div class="pain-checkin-buttons">
+          <!-- Spoken, structured safety check-in shown before and after exercise -->
+          <div
+            id="painCheckin"
+            class="pain-checkin hidden"
+            role="group"
+            aria-labelledby="painCheckinTitle"
+          >
+            <span id="painCheckinContext" class="pain-checkin-context">Before exercise</span>
+            <p id="painCheckinTitle" class="pain-checkin-label">
+              What is your pain level right now?
+              <span>(0 = none, 10 = severe)</span>
+            </p>
+            <div id="painLevelChoices" class="pain-checkin-buttons" aria-label="Pain level">
               <button type="button" data-pain="0">0</button>
               <button type="button" data-pain="1">1</button>
               <button type="button" data-pain="2">2</button>
@@ -448,7 +457,28 @@
               <button type="button" data-pain="9">9</button>
               <button type="button" data-pain="10">10</button>
             </div>
-            <button type="button" id="painSkip" class="text-button">Skip</button>
+            <div id="recoveryChoices" class="recovery-choices hidden">
+              <p>Compared with your previous session, how is your recovery?</p>
+              <div>
+                <button type="button" data-recovery="better">Better</button>
+                <button type="button" data-recovery="same">About the same</button>
+                <button type="button" data-recovery="worse">Worse</button>
+                <button type="button" data-recovery="unsure">Not sure</button>
+              </div>
+            </div>
+            <p id="voiceCheckinStatus" class="voice-checkin-status" role="status" aria-live="polite"></p>
+            <div class="pain-checkin-actions">
+              <button type="button" id="painVoiceInput" class="button voice-answer-button">
+                <span aria-hidden="true">🎙</span> Answer by voice
+              </button>
+              <button type="button" id="painSkip" class="text-button">Skip check-in</button>
+            </div>
+            <small class="pain-safety-note">
+              Stop and seek appropriate help for severe or new pain, dizziness,
+              chest pain, numbness, or sudden weakness. This check-in does not diagnose you.
+              Voice recognition may be processed by your browser provider; use
+              the buttons if you prefer not to send audio.
+            </small>
           </div>
           <div id="trackingWarning" class="tracking-warning hidden"></div>
 
@@ -1026,6 +1056,62 @@
     </section>
   </div>
 
+  <button
+    class="agent-chat-launcher"
+    id="agentChatLauncher"
+    type="button"
+    aria-controls="agentChatPanel"
+    aria-expanded="false"
+  >
+    <span aria-hidden="true">✦</span>
+    Ask your AI
+  </button>
+
+  <section
+    class="agent-chat-panel"
+    id="agentChatPanel"
+    aria-labelledby="agentChatTitle"
+    hidden
+  >
+    <header class="agent-chat-header">
+      <div>
+        <span id="agentChatRole">Personalized Gemini guidance</span>
+        <h2 id="agentChatTitle">Your movement companion</h2>
+      </div>
+      <button id="agentChatClose" type="button" aria-label="Close assistant">×</button>
+    </header>
+    <div
+      class="agent-chat-messages"
+      id="agentChatMessages"
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions"
+    ></div>
+    <p class="agent-chat-status" id="agentChatStatus" role="status"></p>
+    <form class="agent-chat-form" id="agentChatForm">
+      <label for="agentChatInput">Message your assistant</label>
+      <textarea
+        id="agentChatInput"
+        rows="2"
+        maxlength="2000"
+        placeholder="Ask about an exercise or your session…"
+        required
+      ></textarea>
+      <button
+        class="agent-chat-voice"
+        id="agentChatVoice"
+        type="button"
+        aria-label="Speak your message"
+        title="Speak your message"
+      >🎙</button>
+      <button class="button button-coral" id="agentChatSubmit" type="submit">Send</button>
+    </form>
+    <p class="agent-chat-disclaimer">
+      AI can make mistakes. Follow your clinician’s restrictions and stop if you feel unwell.
+      Voice may be processed by your browser provider, and its transcript is sent to Gemini.
+    </p>
+  </section>
+
   <div class="toast" id="toast" role="status" aria-live="polite">
     <span>✓</span>
     <p><strong>Consultation reserved</strong>Wednesday 22 July at 11:00 with Mei Lin</p>
@@ -1096,5 +1182,6 @@
   <script type="module" src="ui.js"></script>
   <script type="module" src="exercise-library.js"></script>
   <script type="module" src="main.js"></script>
+  <script type="module" src="agent-chat.js"></script>
 </body>
 </html>

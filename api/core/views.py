@@ -1,9 +1,12 @@
+import logging
+
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .ai import generate_agent_reply
 from .models import UserRole
 from .serializers import (
     ClinicianProfileSerializer,
@@ -11,6 +14,8 @@ from .serializers import (
     PatientProfileSerializer,
     RegisterSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class RegisterView(APIView):
@@ -74,3 +79,36 @@ class MeView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response({'detail': 'No profile found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class AgentChatView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        message = str(request.data.get('message', '')).strip()
+
+        if not message:
+            return Response(
+                {'detail': 'Message is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(message) > 2000:
+            return Response(
+                {'detail': 'Message is too long.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            reply = generate_agent_reply(request.user, message)
+        except Exception:
+            logger.exception('Gemini request failed')
+            return Response(
+                {'detail': 'The assistant is unavailable.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return Response({
+            'reply': reply,
+            'role': request.user.role,
+        })

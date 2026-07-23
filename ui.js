@@ -15,7 +15,6 @@ import {
   const planSteps = planForm ? [...planForm.querySelectorAll(".form-step")] : [];
   const progressBars = [...document.querySelectorAll(".modal-progress span")];
   const toast = document.getElementById("toast");
-  const soundToggle = document.getElementById("soundToggle");
   let activeModal = null;
   let previousFocus = null;
   let planStep = 1;
@@ -206,14 +205,6 @@ import {
     window.clearTimeout(toastTimer);
     toast?.classList.add("show");
     toastTimer = window.setTimeout(() => toast?.classList.remove("show"), 4500);
-  });
-
-  soundToggle?.addEventListener("click", () => {
-    const enabled = soundToggle.getAttribute("aria-pressed") === "true";
-    soundToggle.setAttribute("aria-pressed", String(!enabled));
-    soundToggle.innerHTML = enabled
-      ? '<span aria-hidden="true">◖×</span> Voice off'
-      : '<span aria-hidden="true">◖))</span> Voice on';
   });
 
   document.querySelectorAll(".therapist-sidebar nav button").forEach((button) => {

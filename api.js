@@ -103,3 +103,9 @@ export async function getCalibrations() {
 export async function getExercises() {
   return request("GET", "/exercises/");
 }
+
+// ── Role-specific AI assistant ───────────────────────────────
+
+export async function sendAgentMessage(message) {
+  return request("POST", "/auth/agent/chat/", { message });
+}

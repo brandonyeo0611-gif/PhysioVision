@@ -26,6 +26,12 @@ import {
   validateCalibrationCapture,
 } from "./personalization.js";
 import { postSession, postPainCheckin, postCalibration, isLoggedIn } from "./api.js";
+import { DRAFT_EXERCISES } from "./exercises/catalog.js";
+import {
+  parsePainLevel,
+  parseRecoveryStatus,
+  voiceGuidance,
+} from "./voice-guidance.js";
 
 // ── EMA smoother ─────────────────────────────────────────────────────────────
 
@@ -109,16 +115,81 @@ const handTrackingToggle    = document.getElementById("handTrackingToggle");
 const handTrackingReadout   = document.getElementById("handTrackingReadout");
 const handModelStatus       = document.getElementById("handModelStatus");
 const handGuideText         = handFrameGuide?.querySelector(":scope > span");
+const soundToggle           = document.getElementById("soundToggle");
 
 let profile = loadProfile();
 let poseLandmarker = null;
 let handLandmarker = null;
 let sessionStartedAt = null;
+const exerciseContent = new Map(
+  DRAFT_EXERCISES.map((exercise) => [exercise.id, exercise])
+);
+
+voiceGuidance.attachToggle(soundToggle);
 
 // Accumulated per-session stats (reset on each camera start)
 const sessionCueCounts = {};
 let sessionSymmetryWarnings = 0;
 const sessionAngleStats = {}; // {angleName: {min, max, sum, count}}
+let spokenCoachingCandidate = null;
+let spokenRepCount = 0;
+
+function exerciseSpokenInstruction(exercise) {
+  const reviewedContent = exerciseContent.get(exercise.id);
+  if (reviewedContent?.instruction) {
+    return `${exercise.name}. ${reviewedContent.instruction}`;
+  }
+
+  const phases = (exercise.stages ?? [])
+    .map((stage) => stage.replaceAll("_", " "))
+    .join(", then ");
+  return [
+    `${exercise.name}.`,
+    phases ? `Move slowly through ${phases}.` : "",
+    exercise.trackingWarning ?? cameraSetupTip(exercise),
+  ].filter(Boolean).join(" ");
+}
+
+function resetSpokenCoaching() {
+  spokenCoachingCandidate = null;
+  spokenRepCount = 0;
+}
+
+function queueSpokenMovementCue(state, cue, timestampMs) {
+  if (!running || calibrationSession || !cue) {
+    spokenCoachingCandidate = null;
+    return;
+  }
+  if (!["adjust", "tracking", "position"].includes(state)) {
+    spokenCoachingCandidate = null;
+    return;
+  }
+
+  const identity = `${state}:${cue}`;
+  if (spokenCoachingCandidate?.identity !== identity) {
+    spokenCoachingCandidate = {
+      identity,
+      firstSeenAt: timestampMs,
+      lastRequestedAt: -Infinity,
+    };
+    return;
+  }
+
+  const stableForMs = state === "adjust" ? 800 : 1400;
+  const repeatAfterMs = state === "adjust" ? 8000 : 10000;
+  if (
+    timestampMs - spokenCoachingCandidate.firstSeenAt < stableForMs ||
+    timestampMs - spokenCoachingCandidate.lastRequestedAt < repeatAfterMs
+  ) {
+    return;
+  }
+
+  spokenCoachingCandidate.lastRequestedAt = timestampMs;
+  voiceGuidance.speak(cue, {
+    key: `movement:${engine.exercise.id}:${identity}`,
+    cooldownMs: repeatAfterMs,
+  });
+}
 
 // ── Hold timer state ──────────────────────────────────────────────────────────
 let holdInterval  = null;
@@ -212,8 +283,9 @@ exSelect.addEventListener("change", () => {
   renderPrescription(engine.exercise);
   renderTrackingWarning(engine.exercise);
 renderPoseStrip(engine.exercise, engine.stages[0]);
-renderStaticPhaseFlow(engine);
+  renderStaticPhaseFlow(engine);
   repCountEl.textContent = "0";
+  resetSpokenCoaching();
   cueListEl.innerHTML = "";
   symWarnEl.classList.add("hidden");
   progressEl.style.width = "0%";
@@ -232,6 +304,7 @@ sideSelect.addEventListener("change", () => {
   smoother.state = {};
   combinedPoseHistory = [];
   repCountEl.textContent = "0";
+  resetSpokenCoaching();
   progressEl.style.width = "0%";
   setFeedbackBanner("ready");
   renderPersonalization();
@@ -255,6 +328,7 @@ window.addEventListener("physiovision:profile-updated", (event) => {
   );
   smoother.state = {};
   repCountEl.textContent = "0";
+  resetSpokenCoaching();
   progressEl.style.width = "0%";
   setFeedbackBanner("ready");
   renderPersonalization();
@@ -601,6 +675,13 @@ function renderFrame() {
               ? "Hold reset — return to the stretch to restart"
               : ""
           );
+          queueSpokenMovementCue(
+            "position",
+            interruptedHold
+              ? "Your hold was reset because tracking was lost. Return to the stretch and keep your full body visible."
+              : "Step back and keep your full body visible.",
+            frameTimestamp
+          );
         }
       }
     }
@@ -691,35 +772,38 @@ function updateFeedbackPanel(angles, timestampMs) {
   cueListEl.innerHTML = personalizedCues
     .map((c) => `<li>${escapeHtml(c)}</li>`)
     .join("");
+  let bannerState;
+  let bannerCue;
   if (fb.inHold && !fb.holdPositionMaintained) {
-    setFeedbackBanner(
-      fb.trackingReady ? "adjust" : "tracking",
-      "Hold reset — return to the target position to restart"
-    );
+    bannerState = fb.trackingReady ? "adjust" : "tracking";
+    bannerCue = "Hold reset — return to the target position to restart";
   } else if (!fb.trackingReady) {
-    setFeedbackBanner(
-      "tracking",
-      fb.inHold
-        ? "Hold reset — keep the required joints visible to restart"
-        : ""
-    );
+    bannerState = "tracking";
+    bannerCue = fb.inHold
+      ? "Hold reset — keep the required joints visible to restart"
+      : "Keep every required joint visible so I can guide you safely";
   } else if (!fb.sequenceOnTrack && fb.positionRecognized) {
-    setFeedbackBanner(
-      "adjust",
-      `Follow the order — move to ${fb.expectedNextPhase.replaceAll("_", " ")} next`
-    );
+    bannerState = "adjust";
+    bannerCue =
+      `Follow the order — move to ${fb.expectedNextPhase.replaceAll("_", " ")} next`;
   } else if (!fb.positionRecognized && !personalizedCues.length) {
     const nextIdx = fb.stageIndex + 1;
     const nextPhase = fb.stages[nextIdx] ?? fb.stages[0];
-    setFeedbackBanner(
-      "adjust",
-      `Move slowly toward the ${nextPhase.replaceAll("_", " ")} position`
-    );
+    bannerState = "adjust";
+    bannerCue =
+      `Move slowly toward the ${nextPhase.replaceAll("_", " ")} position`;
   } else {
-    setFeedbackBanner(
-      personalizedCues.length ? "adjust" : "good",
-      personalizedCues[0]
-    );
+    bannerState = personalizedCues.length ? "adjust" : "good";
+    bannerCue = personalizedCues[0] ?? "";
+  }
+  setFeedbackBanner(bannerState, bannerCue);
+  queueSpokenMovementCue(bannerState, bannerCue, timestampMs);
+
+  if (fb.repCount > spokenRepCount) {
+    spokenRepCount = fb.repCount;
+    voiceGuidance.speak(`Rep ${fb.repCount}.`, {
+      key: `rep:${engine.exercise.id}:${fb.repCount}`,
+    });
   }
 
   // Symmetry warning
@@ -1206,6 +1290,7 @@ async function activateCameraGuide() {
     Object.keys(sessionCueCounts).forEach(k => delete sessionCueCounts[k]);
     Object.keys(sessionAngleStats).forEach(k => delete sessionAngleStats[k]);
     sessionSymmetryWarnings = 0;
+    resetSpokenCoaching();
     cameraStage?.classList.add("camera-active");
     if (exerciseUsesHand(engine.exercise)) {
       const combined = engine.exercise.trackingMode === TRACKING_MODES.POSE_AND_HAND;
@@ -1223,6 +1308,11 @@ async function activateCameraGuide() {
     toggleBtn.innerHTML = 'Stop camera guide <span aria-hidden="true">■</span>';
     toggleBtn.disabled = false;
     renderFrame();
+    voiceGuidance.speak(exerciseSpokenInstruction(engine.exercise), {
+      key: `instruction:${engine.exercise.id}`,
+      cooldownMs: 3000,
+      interrupt: true,
+    });
     return true;
   } catch (err) {
     statusEl.textContent = `Camera error: ${err.message}`;
@@ -1234,6 +1324,8 @@ async function activateCameraGuide() {
 
 function deactivateCameraGuide() {
   running = false;
+  voiceGuidance.cancel();
+  resetSpokenCoaching();
   cancelAnimationFrame(rafId);
   cancelCalibration();
   if (holdInterval) {
@@ -1252,7 +1344,7 @@ function deactivateCameraGuide() {
   setFeedbackBanner("ready");
 
   flushSession();
-  showPainCheckin();
+  showPainCheckin("after");
 }
 
 async function startHandPreview() {
@@ -1350,31 +1442,166 @@ function flushSession() {
 // ── Pain check-in ─────────────────────────────────────────────────────────────
 const painCheckinEl = document.getElementById("painCheckin");
 const painSkipBtn   = document.getElementById("painSkip");
+const painCheckinContextEl = document.getElementById("painCheckinContext");
+const painCheckinTitleEl = document.getElementById("painCheckinTitle");
+const painLevelChoicesEl = document.getElementById("painLevelChoices");
+const recoveryChoicesEl = document.getElementById("recoveryChoices");
+const voiceCheckinStatusEl = document.getElementById("voiceCheckinStatus");
+const painVoiceInputBtn = document.getElementById("painVoiceInput");
+let painCheckinState = null;
 
-function showPainCheckin() {
-  if (!isLoggedIn()) return;
+function painQuestion(context) {
+  return context === "before"
+    ? "Before we begin, what is your pain level right now, from zero to ten?"
+    : "Now that you have finished, what is your pain level, from zero to ten?";
+}
+
+function recoveryQuestion(context) {
+  return context === "before"
+    ? "Compared with your previous session, is your recovery better, about the same, worse, or are you not sure?"
+    : "Compared with before this exercise, do you feel better, about the same, worse, or are you not sure?";
+}
+
+function showPainCheckin(context = "after", { startAfter = false } = {}) {
+  if (!isLoggedIn()) {
+    if (startAfter) activateCameraGuide();
+    return;
+  }
+
+  painCheckinState = {
+    context,
+    startAfter,
+    stage: "pain",
+    painLevel: null,
+    recoveryStatus: "",
+  };
+  painCheckinContextEl.textContent =
+    context === "before" ? "Before exercise" : "After exercise";
+  painCheckinTitleEl.innerHTML =
+    `${escapeHtml(painQuestion(context))} <span>(0 = none, 10 = severe)</span>`;
+  painLevelChoicesEl.classList.remove("hidden");
+  recoveryChoicesEl.classList.add("hidden");
+  voiceCheckinStatusEl.textContent = voiceGuidance.canListen
+    ? "You can choose a number or answer by voice."
+    : "Voice input is unavailable in this browser. Choose a button.";
+  painVoiceInputBtn.disabled = !voiceGuidance.canListen;
   painCheckinEl.classList.remove("hidden");
+  if (startAfter) toggleBtn.disabled = true;
+
+  voiceGuidance.speak(painQuestion(context), {
+    key: `checkin:${context}:pain`,
+    interrupt: true,
+  });
 }
 
 function hidePainCheckin() {
+  voiceGuidance.cancel();
   painCheckinEl.classList.add("hidden");
+  voiceCheckinStatusEl.textContent = "";
+  painCheckinState = null;
+  toggleBtn.disabled = false;
+}
+
+function shouldAskRecovery() {
+  return profile.carePath === "clinician";
+}
+
+function beginRecoveryQuestion() {
+  if (!painCheckinState) return;
+  painCheckinState.stage = "recovery";
+  painLevelChoicesEl.classList.add("hidden");
+  recoveryChoicesEl.classList.remove("hidden");
+  painCheckinTitleEl.textContent = recoveryQuestion(painCheckinState.context);
+  voiceCheckinStatusEl.textContent = voiceGuidance.canListen
+    ? "Choose an answer or say better, same, worse, or not sure."
+    : "Choose the answer that fits best.";
+  voiceGuidance.speak(recoveryQuestion(painCheckinState.context), {
+    key: `checkin:${painCheckinState.context}:recovery`,
+    interrupt: true,
+  });
+}
+
+function finishPainCheckin() {
+  if (!painCheckinState) return;
+  const completed = { ...painCheckinState };
+
+  postPainCheckin({
+    pain_level: completed.painLevel,
+    timing: completed.context,
+    recovery_status: completed.recoveryStatus,
+    checked_at: new Date().toISOString(),
+  }).catch(() => {});
+
+  hidePainCheckin();
+  if (completed.startAfter) activateCameraGuide();
+}
+
+function acceptPainLevel(level) {
+  if (!painCheckinState || !Number.isInteger(level) || level < 0 || level > 10) {
+    voiceCheckinStatusEl.textContent =
+      "Please choose or say one number from zero to ten.";
+    return;
+  }
+  painCheckinState.painLevel = level;
+  voiceCheckinStatusEl.textContent = `Pain level ${level} recorded.`;
+  if (shouldAskRecovery()) beginRecoveryQuestion();
+  else finishPainCheckin();
+}
+
+function acceptRecoveryStatus(status) {
+  if (
+    !painCheckinState ||
+    !["better", "same", "worse", "unsure"].includes(status)
+  ) {
+    voiceCheckinStatusEl.textContent =
+      "Please say better, same, worse, or not sure.";
+    return;
+  }
+  painCheckinState.recoveryStatus = status;
+  finishPainCheckin();
 }
 
 painCheckinEl.querySelectorAll("[data-pain]").forEach(btn => {
   btn.addEventListener("click", () => {
-    const level = parseInt(btn.dataset.pain, 10);
-    postPainCheckin({
-      pain_level: level,
-      checked_at: new Date().toISOString(),
-    }).catch(() => {});
-    hidePainCheckin();
+    acceptPainLevel(parseInt(btn.dataset.pain, 10));
   });
 });
 
-painSkipBtn.addEventListener("click", hidePainCheckin);
+painCheckinEl.querySelectorAll("[data-recovery]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    acceptRecoveryStatus(btn.dataset.recovery);
+  });
+});
+
+painVoiceInputBtn.addEventListener("click", () => {
+  if (!painCheckinState) return;
+  voiceGuidance.listen({
+    onStatus: (status) => {
+      voiceCheckinStatusEl.textContent = status;
+    },
+    onError: (message) => {
+      voiceCheckinStatusEl.textContent = message;
+    },
+    onResult: (transcript) => {
+      voiceCheckinStatusEl.textContent = `I heard: “${transcript}”`;
+      if (painCheckinState?.stage === "pain") {
+        acceptPainLevel(parsePainLevel(transcript));
+      } else {
+        acceptRecoveryStatus(parseRecoveryStatus(transcript));
+      }
+    },
+  });
+});
+
+painSkipBtn.addEventListener("click", () => {
+  const startAfter = painCheckinState?.startAfter;
+  hidePainCheckin();
+  if (startAfter) activateCameraGuide();
+});
 
 toggleBtn.addEventListener("click", async () => {
   if (running) deactivateCameraGuide();
+  else if (isLoggedIn()) showPainCheckin("before", { startAfter: true });
   else await activateCameraGuide();
 });
 

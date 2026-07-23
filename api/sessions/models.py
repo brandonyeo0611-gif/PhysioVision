@@ -100,6 +100,19 @@ class Session(TimestampedModel):
         super().save(*args, **kwargs)
 
 
+class PainCheckinTiming(models.TextChoices):
+    BEFORE = "before", _("Before exercise")
+    AFTER = "after", _("After exercise")
+    GENERAL = "general", _("General check-in")
+
+
+class RecoveryStatus(models.TextChoices):
+    BETTER = "better", _("Better")
+    SAME = "same", _("About the same")
+    WORSE = "worse", _("Worse")
+    UNSURE = "unsure", _("Not sure")
+
+
 class PainCheckin(TimestampedModel):
     """
     Discrete pain self-report, optionally linked to a session.
@@ -118,6 +131,18 @@ class PainCheckin(TimestampedModel):
 
     pain_level     = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(10)],
+    )
+    timing         = models.CharField(
+        max_length=10,
+        choices=PainCheckinTiming.choices,
+        default=PainCheckinTiming.GENERAL,
+        help_text="Whether this report was collected before or after exercise.",
+    )
+    recovery_status = models.CharField(
+        max_length=10,
+        choices=RecoveryStatus.choices,
+        blank=True,
+        help_text="Patient-reported change compared with the relevant prior point.",
     )
     location_notes = models.CharField(max_length=100, blank=True)
     checked_at     = models.DateTimeField()
