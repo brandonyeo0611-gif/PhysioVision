@@ -978,14 +978,11 @@
               <option value="detailed">Explain each correction</option>
             </select>
           </label>
-          <label>
+          <div class="profile-path-status">
             <span>Exercise pathway</span>
-            <select name="carePath">
-              <option value="wellness">General wellness · screening required</option>
-              <option value="clinician">Physiotherapist-prescribed rehabilitation</option>
-              <option value="needs_review">Professional review needed</option>
-            </select>
-          </label>
+            <strong id="profileCarePathStatus">Assigned from your screening or active prescription</strong>
+            <small>Patients cannot manually unlock clinician-guided exercises.</small>
+          </div>
           <label>
             <span>Current activity</span>
             <select name="activity">
@@ -1003,6 +1000,29 @@
           Save my profile <span aria-hidden="true">→</span>
         </button>
       </form>
+      <section id="patientCareLink" class="care-link-card hidden" aria-labelledby="careLinkTitle">
+        <p class="eyebrow">Clinician programme</p>
+        <h3 id="careLinkTitle">Connect to your physiotherapist</h3>
+        <p>
+          Enter the one-time code supplied by a physiotherapist using
+          PhysioVision. This is a platform link—not a hospital login.
+        </p>
+        <div class="care-link-form">
+          <label for="careInviteCode">8-character invitation code</label>
+          <input
+            id="careInviteCode"
+            type="text"
+            maxlength="8"
+            autocomplete="one-time-code"
+            spellcheck="false"
+            placeholder="ABCD2345"
+          />
+          <button id="acceptCareInvite" class="button button-dark" type="button">
+            Connect
+          </button>
+        </div>
+        <p id="careInviteStatus" class="care-workflow-status" role="status" aria-live="polite"></p>
+      </section>
     </section>
   </div>
 
@@ -1071,40 +1091,98 @@
       <div class="therapist-content">
         <div class="therapist-heading">
           <div>
-            <p class="eyebrow">Monday, 20 July</p>
-            <h2 id="therapist-title">Patient overview</h2>
+            <p class="eyebrow">Hackathon clinician workspace</p>
+            <h2 id="therapist-title">Prescribe a programme</h2>
           </div>
           <button class="button button-dark button-small" type="button" data-close-modal>
             Exit dashboard
           </button>
         </div>
-        <div class="clinician-stats">
-          <div><span>Active patients</span><strong>24</strong><em>3 new this month</em></div>
-          <div><span>Need review</span><strong>4</strong><em class="attention">2 high priority</em></div>
-          <div><span>Adherence</span><strong>82%</strong><em>↑ 6% this month</em></div>
+        <div id="clinicianAccessMessage" class="clinician-access-message">
+          Sign in with a PhysioVision clinician demo account to create invitation
+          codes and prescribe exercises.
         </div>
-        <div class="patient-table-wrap">
-          <div class="table-heading">
-            <div><strong>Patients needing attention</strong><span>AI-prioritised from recent trends</span></div>
-            <button type="button">View all patients →</button>
+        <div id="clinicianWorkspace" class="hidden">
+          <div class="clinician-stats">
+            <div>
+              <span>Linked patients</span>
+              <strong id="linkedPatientCount">0</strong>
+              <em>Accepted platform invitations</em>
+            </div>
+            <div>
+              <span>Active prescriptions</span>
+              <strong id="activePrescriptionCount">0</strong>
+              <em>Current patient movements</em>
+            </div>
+            <div>
+              <span>Credential status</span>
+              <strong class="demo-status">Demo</strong>
+              <em class="attention">Not professionally verified</em>
+            </div>
           </div>
-          <div class="patient-row patient-row-head">
-            <span>Patient</span><span>Programme</span><span>Last session</span><span>Trend</span><span>Status</span>
+
+          <div class="clinician-workflow-grid">
+            <section class="clinician-workflow-card">
+              <p class="eyebrow">Step 1</p>
+              <h3>Invite a patient</h3>
+              <p>
+                Generate a one-time code that expires after seven days. Share
+                it only with the intended patient.
+              </p>
+              <button id="createCareInvite" class="button button-dark" type="button">
+                Generate invitation code
+              </button>
+              <div id="careInviteResult" class="invite-code-result hidden">
+                <span>Share this code once</span>
+                <strong id="careInviteResultCode">—</strong>
+                <small id="careInviteExpiry"></small>
+              </div>
+              <p id="clinicianInviteStatus" class="care-workflow-status" role="status"></p>
+            </section>
+
+            <section class="clinician-workflow-card">
+              <p class="eyebrow">Step 2</p>
+              <h3>Create a locked prescription</h3>
+              <form id="prescriptionForm">
+                <label>
+                  <span>Linked patient</span>
+                  <select id="prescriptionPatient" name="patient" required></select>
+                </label>
+                <label>
+                  <span>Exercise</span>
+                  <select id="prescriptionExercise" name="exercise" required></select>
+                </label>
+                <div class="prescription-dose-grid">
+                  <label><span>Sets</span><input name="sets" type="number" min="1" max="20" value="2" required /></label>
+                  <label><span>Repetitions</span><input name="reps" type="number" min="1" max="100" value="10" required /></label>
+                  <label><span>Hold seconds</span><input name="hold_seconds" type="number" min="0" max="600" value="0" /></label>
+                  <label><span>Days/week</span><input name="days_per_week" type="text" maxlength="10" value="3" required /></label>
+                  <label><span>Starts</span><input name="valid_from" type="date" required /></label>
+                  <label><span>Ends</span><input name="valid_until" type="date" /></label>
+                </div>
+                <label>
+                  <span>Instructions or restrictions</span>
+                  <textarea name="notes" rows="2" maxlength="1000" placeholder="For example: use fixed support; stop at the approved range"></textarea>
+                </label>
+                <button class="button button-coral full-button" type="submit">
+                  Assign to patient
+                </button>
+              </form>
+              <p id="prescriptionStatus" class="care-workflow-status" role="status"></p>
+            </section>
           </div>
-          <div class="patient-row">
-            <span class="patient-name"><i class="avatar avatar-lee">SL</i><span><strong>Sarah Lee</strong><small>68 · Knee strength</small></span></span>
-            <span>Week 3 of 6</span><span>Today</span><span class="mini-trend trend-falling">⌁</span>
-            <span><button class="status-pill status-pill-review" type="button">Review now</button></span>
-          </div>
-          <div class="patient-row">
-            <span class="patient-name"><i class="avatar avatar-chan">PC</i><span><strong>Peter Chan</strong><small>74 · Balance</small></span></span>
-            <span>Week 2 of 8</span><span>Yesterday</span><span class="mini-trend trend-flat">—</span>
-            <span><button class="status-pill status-pill-watch" type="button">Monitor</button></span>
-          </div>
-          <div class="patient-row">
-            <span class="patient-name"><i class="avatar avatar-wong">AW</i><span><strong>Anna Wong</strong><small>71 · Hip mobility</small></span></span>
-            <span>Week 5 of 6</span><span>2 days ago</span><span class="mini-trend trend-rising">↗</span>
-            <span><button class="status-pill status-pill-good" type="button">On track</button></span>
+
+          <div class="patient-table-wrap">
+            <div class="table-heading">
+              <div>
+                <strong>Linked patients</strong>
+                <span>Only patients who accepted your invitation appear here</span>
+              </div>
+            </div>
+            <div class="patient-row patient-row-head clinician-patient-row">
+              <span>Patient</span><span>Email</span><span>Active movements</span><span>Pathway</span>
+            </div>
+            <div id="clinicianPatientRows"></div>
           </div>
         </div>
       </div>
@@ -1238,5 +1316,6 @@
   <script type="module" src="exercise-library.js"></script>
   <script type="module" src="main.js"></script>
   <script type="module" src="agent-chat.js"></script>
+  <script type="module" src="care-workflow.js"></script>
 </body>
 </html>

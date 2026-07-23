@@ -122,11 +122,47 @@ let profile = loadProfile();
 let poseLandmarker = null;
 let handLandmarker = null;
 let sessionStartedAt = null;
+let activePrescriptions = loadActivePrescriptions();
 const exerciseContent = new Map(
   DRAFT_EXERCISES.map((exercise) => [exercise.id, exercise])
 );
 
 voiceGuidance.attachToggle(soundToggle);
+
+function loadActivePrescriptions() {
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem("physiovision.prescriptions.v1") ?? "[]"
+    );
+    const today = new Date().toISOString().slice(0, 10);
+    return new Map(
+      (Array.isArray(stored) ? stored : [])
+        .filter((prescription) => (
+          prescription.is_active &&
+          prescription.valid_from <= today &&
+          (!prescription.valid_until || prescription.valid_until >= today)
+        ))
+        .map((prescription) => [prescription.exercise, prescription])
+    );
+  } catch (_) {
+    return new Map();
+  }
+}
+
+function activeDose(exercise = engine?.exercise) {
+  if (profile.carePath !== "clinician") return exercise?.prescription ?? {};
+  const prescription = activePrescriptions.get(exercise?.id);
+  if (!prescription) return {};
+  return {
+    id: prescription.id,
+    sets: prescription.sets,
+    reps: prescription.reps,
+    holdSeconds: prescription.hold_seconds ?? 0,
+    daysPerWeek: prescription.days_per_week,
+    notes: prescription.notes,
+    clinicianName: prescription.clinician_name,
+  };
+}
 
 // Accumulated per-session stats (reset on each camera start)
 const sessionCueCounts = {};
@@ -248,19 +284,34 @@ function refreshExerciseAccess() {
   EXERCISES.forEach((exercise) => {
     const option = [...exSelect.options].find((item) => item.value === exercise.id);
     if (!option) return;
-    option.disabled = Boolean(
-      exercise.requiresClinicianPlan && profile.carePath !== "clinician"
+    if (profile.carePath === "clinician") {
+      option.disabled = !activePrescriptions.has(exercise.id);
+    } else if (profile.carePath === "needs_review") {
+      option.disabled = true;
+    } else {
+      option.disabled = Boolean(exercise.requiresClinicianPlan);
+    }
+  });
+}
+
+function firstAccessibleExercise() {
+  return EXERCISES.find((exercise) => {
+    const option = [...exSelect.options].find(
+      (candidate) => candidate.value === exercise.id
     );
+    return option && !option.disabled;
   });
 }
 
 refreshExerciseAccess();
 
 sideSelect.value = profile.focusSide;
+const initialExercise = firstAccessibleExercise() ?? EXERCISES[0];
+exSelect.value = initialExercise.id;
 let engine = new FeedbackEngine(
-  EXERCISES[0].id,
+  initialExercise.id,
   profile.focusSide,
-  getCalibration(EXERCISES[0].id, profile.focusSide)
+  getCalibration(initialExercise.id, profile.focusSide)
 );
 renderPrescription(engine.exercise);
 renderTrackingWarning(engine.exercise);
@@ -278,7 +329,7 @@ exSelect.addEventListener("change", () => {
   );
   smoother.state = {};
   combinedPoseHistory = [];
-  clearHoldTimer(engine.exercise.prescription.holdSeconds);
+  clearHoldTimer(activeDose(engine.exercise).holdSeconds);
   holdTimerSection.classList.add("hidden");
   progressSection.classList.remove("hidden");
   renderPrescription(engine.exercise);
@@ -316,9 +367,11 @@ window.addEventListener("physiovision:profile-updated", (event) => {
   profile = event.detail;
   refreshExerciseAccess();
   if (exSelect.selectedOptions[0]?.disabled) {
-    exSelect.value = EXERCISES.find((exercise) => !exercise.requiresClinicianPlan)?.id
-      ?? EXERCISES[0].id;
-    exSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    const accessible = firstAccessibleExercise();
+    if (accessible) {
+      exSelect.value = accessible.id;
+      exSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    }
     return;
   }
   sideSelect.value = profile.focusSide;
@@ -333,6 +386,25 @@ window.addEventListener("physiovision:profile-updated", (event) => {
   progressEl.style.width = "0%";
   setFeedbackBanner("ready");
   renderPersonalization();
+});
+
+window.addEventListener("physiovision:prescriptions-updated", (event) => {
+  const prescriptions = Array.isArray(event.detail) ? event.detail : [];
+  window.localStorage.setItem(
+    "physiovision.prescriptions.v1",
+    JSON.stringify(prescriptions)
+  );
+  activePrescriptions = loadActivePrescriptions();
+  refreshExerciseAccess();
+
+  const selectedOption = exSelect.selectedOptions[0];
+  const accessible = firstAccessibleExercise();
+  if ((!selectedOption || selectedOption.disabled) && accessible) {
+    exSelect.value = accessible.id;
+    exSelect.dispatchEvent(new Event("change", { bubbles: true }));
+  } else {
+    renderPrescription(engine.exercise);
+  }
 });
 
 // ── MediaPipe setup ───────────────────────────────────────────────────────────
@@ -667,7 +739,7 @@ function renderFrame() {
           updateCalibrationCapture(null, frameTimestamp);
           const interruptedHold = engine.inHold;
           if (holdInterval) {
-            clearHoldTimer(engine.exercise.prescription.holdSeconds);
+            clearHoldTimer(activeDose(engine.exercise).holdSeconds);
           }
           statusEl.textContent = "Step back so your full body is visible";
           setFeedbackBanner(
@@ -702,7 +774,7 @@ function renderFrame() {
 function updateFeedbackPanel(angles, timestampMs) {
   const fb = engine.update(angles, timestampMs);
   const holdSeconds = fb.exercise.trackingHoldSeconds
-    ?? fb.exercise.prescription.holdSeconds
+    ?? activeDose(fb.exercise).holdSeconds
     ?? 3;
 
   // Accumulate session stats for backend POST
@@ -1162,9 +1234,19 @@ function renderPoseStrip(exercise, activePhase) {
 }
 
 function renderPrescription(ex) {
-  const p = ex.prescription;
-  if (p.mode === "clinician_plan") {
-    prescEl.textContent = "Follow your clinician-approved dose";
+  const p = activeDose(ex);
+  if (profile.carePath === "clinician" && !p.id) {
+    prescEl.textContent = "This movement is not in your active prescription";
+    if (repTargetEl) repTargetEl.textContent = "—";
+  } else if (profile.carePath === "clinician") {
+    prescEl.textContent =
+      `${p.sets} sets × ${p.reps} reps` +
+      (p.holdSeconds ? ` · hold ${p.holdSeconds}s` : "") +
+      ` · ${p.daysPerWeek} days/week` +
+      (p.clinicianName ? ` · prescribed by ${p.clinicianName}` : "");
+    if (repTargetEl) repTargetEl.textContent = p.reps;
+  } else if (p.mode === "clinician_plan") {
+    prescEl.textContent = "A clinician prescription is required";
     if (repTargetEl) repTargetEl.textContent = "—";
   } else {
     prescEl.textContent =
@@ -1185,8 +1267,12 @@ function renderPrescription(ex) {
 }
 
 function renderTrackingWarning(ex) {
-  if (ex.trackingWarning) {
-    trackWarnEl.textContent = ex.trackingWarning;
+  const clinicianNote = activeDose(ex).notes;
+  if (ex.trackingWarning || clinicianNote) {
+    trackWarnEl.textContent = [
+      clinicianNote ? `Clinician instruction: ${clinicianNote}` : "",
+      ex.trackingWarning ?? "",
+    ].filter(Boolean).join(" ");
     trackWarnEl.classList.remove("hidden");
   } else {
     trackWarnEl.classList.add("hidden");
@@ -1289,6 +1375,17 @@ function hasPathwayAccess() {
     );
     return false;
   }
+  if (
+    profile.carePath === "clinician" &&
+    !activePrescriptions.has(engine.exercise.id)
+  ) {
+    statusEl.textContent = "This exercise is not in your active prescription";
+    setFeedbackBanner(
+      "tracking",
+      "Choose one of the movements assigned by your physiotherapist"
+    );
+    return false;
+  }
   if (engine.exercise.requiresClinicianPlan && profile.carePath !== "clinician") {
     statusEl.textContent = "This exercise requires a clinician-approved care plan";
     setFeedbackBanner(
@@ -1341,7 +1438,12 @@ async function activateCameraGuide() {
     toggleBtn.innerHTML = 'Stop camera guide <span aria-hidden="true">■</span>';
     toggleBtn.disabled = false;
     renderFrame();
-    voiceGuidance.speak(exerciseSpokenInstruction(engine.exercise), {
+    const clinicianNote = activeDose(engine.exercise).notes;
+    const spokenInstruction = [
+      exerciseSpokenInstruction(engine.exercise),
+      clinicianNote ? `Your clinician's instruction is: ${clinicianNote}` : "",
+    ].filter(Boolean).join(" ");
+    voiceGuidance.speak(spokenInstruction, {
       key: `instruction:${engine.exercise.id}`,
       cooldownMs: 3000,
       interrupt: true,
@@ -1362,7 +1464,7 @@ function deactivateCameraGuide() {
   cancelAnimationFrame(rafId);
   cancelCalibration();
   if (holdInterval) {
-    clearHoldTimer(engine.exercise.prescription.holdSeconds);
+    clearHoldTimer(activeDose(engine.exercise).holdSeconds);
   }
   stopCamera();
   combinedPoseHistory = [];
@@ -1437,6 +1539,7 @@ function flushSession() {
   if (!isLoggedIn() || engine.repCount === 0 || !sessionStartedAt) return;
   const endedAt = new Date().toISOString();
   const ex = engine.exercise;
+  const dose = activeDose(ex);
   const cuesTriggered = Object.entries(sessionCueCounts).map(
     ([cue_text, trigger_count]) => ({ cue_text, trigger_count })
   );
@@ -1453,12 +1556,13 @@ function flushSession() {
 
   postSession({
     exercise:                ex.id,
+    prescription:            dose.id ?? null,
     started_at:              sessionStartedAt,
     ended_at:                endedAt,
     sets_completed:          1,
     reps_completed:          engine.repCount,
-    reps_target:             ex.prescription?.reps ?? engine.repCount,
-    sets_target:             ex.prescription?.sets ?? 1,
+    reps_target:             dose.reps ?? engine.repCount,
+    sets_target:             dose.sets ?? 1,
     affected_side:           profile.focusSide ?? "right",
     cues_triggered:          cuesTriggered,
     symmetry_warnings_count: sessionSymmetryWarnings,

@@ -3007,6 +3007,38 @@ details.metrics summary {
   display: block;
 }
 
+.profile-path-status {
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--cream);
+}
+
+.profile-path-status span,
+.profile-path-status strong,
+.profile-path-status small {
+  display: block;
+}
+
+.profile-path-status span {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.profile-path-status strong {
+  font-size: 11px;
+}
+
+.profile-path-status small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
 .field-grid label > span,
 .history-field > span {
   display: block;
@@ -3209,6 +3241,54 @@ details.metrics summary {
 
 .profile-safety-note p {
   margin: 0;
+}
+
+.care-link-card {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid #c7dcd1;
+  border-radius: 12px;
+  background: var(--mint-light);
+}
+
+.care-link-card h3,
+.clinician-workflow-card h3 {
+  margin: 3px 0 8px;
+  font-size: 19px;
+}
+
+.care-link-card > p:not(.eyebrow),
+.clinician-workflow-card > p:not(.eyebrow) {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.care-link-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.care-link-form label {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.care-link-form input {
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.care-workflow-status {
+  min-height: 18px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .booking-modal {
@@ -3457,6 +3537,98 @@ details.metrics summary {
 
 .clinician-stats em.attention {
   color: var(--coral-dark);
+}
+
+.clinician-stats strong.demo-status {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.clinician-access-message {
+  padding: 22px;
+  border: 1px solid #e5c79d;
+  border-radius: 11px;
+  color: #715225;
+  background: #fff0d2;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.clinician-workflow-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.75fr) minmax(380px, 1.25fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.clinician-workflow-card {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--white);
+}
+
+.invite-code-result {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px dashed var(--green);
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--mint-light);
+}
+
+.invite-code-result span,
+.invite-code-result strong,
+.invite-code-result small {
+  display: block;
+}
+
+.invite-code-result span,
+.invite-code-result small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.invite-code-result strong {
+  margin: 5px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 25px;
+  letter-spacing: 0.14em;
+}
+
+#prescriptionForm {
+  display: grid;
+  gap: 10px;
+}
+
+#prescriptionForm label > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+#prescriptionForm textarea {
+  min-height: 62px;
+  resize: vertical;
+}
+
+.prescription-dose-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.clinician-patient-row {
+  grid-template-columns: 1.2fr 1.5fr 0.7fr 1fr;
+}
+
+.clinician-empty-state {
+  margin: 0;
+  padding: 18px;
+  color: var(--muted);
+  font-size: 11px;
 }
 
 .patient-table-wrap {
@@ -3803,6 +3975,10 @@ details.metrics summary {
   .clinician-profile div:last-child {
     display: none;
   }
+
+  .clinician-workflow-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -4078,6 +4254,18 @@ details.metrics summary {
 
   .clinician-stats {
     grid-template-columns: 1fr;
+  }
+
+  .prescription-dose-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .care-link-form {
+    grid-template-columns: 1fr;
+  }
+
+  .care-link-form label {
+    grid-column: auto;
   }
 
   .patient-table-wrap {

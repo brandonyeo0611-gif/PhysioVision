@@ -1,4 +1,12 @@
-import { isLoggedIn, login, logout, register, getMe, getCalibrations } from "./api.js";
+import {
+  getCalibrations,
+  getMe,
+  getPrescriptions,
+  isLoggedIn,
+  login,
+  logout,
+  register,
+} from "./api.js";
 
 const shell        = document.getElementById("auth-modal");
 const loginForm    = document.getElementById("loginForm");
@@ -71,7 +79,7 @@ loginForm.addEventListener("submit", async (e) => {
   const data = new FormData(loginForm);
   try {
     await login({ email: data.get("email"), password: data.get("password") });
-    await Promise.all([seedProfileFromApi(), seedCalibrationsFromApi()]);
+    await seedSignedInData();
     hideModal();
     updateAuthButtons(true);
     alert("Signed in successfully!");
@@ -93,7 +101,7 @@ registerForm.addEventListener("submit", async (e) => {
       lastName:  data.get("lastName"),
       role:      data.get("role"),
     });
-    await seedProfileFromApi();
+    await seedSignedInData();
     hideModal();
     updateAuthButtons(true);
     alert("Account created successfully!");
@@ -129,11 +137,37 @@ async function seedCalibrationsFromApi() {
   }
 }
 
+async function seedPrescriptionsFromApi() {
+  try {
+    const data = await getPrescriptions();
+    const prescriptions = data.results ?? data;
+    localStorage.setItem(
+      "physiovision.prescriptions.v1",
+      JSON.stringify(prescriptions)
+    );
+    window.dispatchEvent(new CustomEvent(
+      "physiovision:prescriptions-updated",
+      { detail: prescriptions }
+    ));
+  } catch (_) {
+    // A missing backend connection must not create fake prescriptions.
+    localStorage.setItem("physiovision.prescriptions.v1", "[]");
+    window.dispatchEvent(new CustomEvent(
+      "physiovision:prescriptions-updated",
+      { detail: [] }
+    ));
+  }
+}
+
 // Pull profile from API and cache in localStorage
 async function seedProfileFromApi() {
   try {
     const me = await getMe();
-    if (me.profile) {
+    window.dispatchEvent(new CustomEvent(
+      "physiovision:auth-role",
+      { detail: { role: me.role, user: me } }
+    ));
+    if (me.role === "patient" && me.profile) {
       const p = me.profile;
       const goalLabels = {
         stronger_knees: "Stronger knees",
@@ -179,9 +213,22 @@ async function seedProfileFromApi() {
       localStorage.setItem("physiovision.profile.v1", JSON.stringify(mapped));
       window.dispatchEvent(new CustomEvent("physiovision:profile-updated", { detail: mapped }));
     }
+    return me;
   } catch (_) {
     // Non-fatal — app still works with localStorage
+    return null;
   }
+}
+
+async function seedSignedInData() {
+  const me = await seedProfileFromApi();
+  if (me?.role === "patient") {
+    await Promise.all([
+      seedCalibrationsFromApi(),
+      seedPrescriptionsFromApi(),
+    ]);
+  }
+  return me;
 }
 
 // On load: show modal if not logged in, otherwise sync profile + calibrations
@@ -190,8 +237,7 @@ if (!isLoggedIn()) {
   updateAuthButtons(false);
 } else {
   updateAuthButtons(true);
-  seedProfileFromApi();
-  seedCalibrationsFromApi();
+  seedSignedInData();
 }
 
 // Expose logout globally

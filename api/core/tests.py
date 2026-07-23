@@ -4,6 +4,7 @@ from rest_framework.test import APITestCase
 
 from .models import (
     CarePath,
+    ClinicianProfile,
     PatientProfile,
     User,
     UserRole,
@@ -172,3 +173,97 @@ class WellnessScreeningViewTests(APITestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn('no_concerning_symptoms', response.data)
+
+
+class CareInvitationFlowTests(APITestCase):
+    def make_clinician(self):
+        user = User.objects.create_user(
+            username='clinician@example.com',
+            email='clinician@example.com',
+            password='test-password',
+            role=UserRole.CLINICIAN,
+        )
+        ClinicianProfile.objects.create(
+            user=user,
+            license_number='DEMO-ONLY',
+        )
+        return user
+
+    def make_patient(self):
+        user = User.objects.create_user(
+            username='linked-patient@example.com',
+            email='linked-patient@example.com',
+            password='test-password',
+            role=UserRole.PATIENT,
+        )
+        PatientProfile.objects.create(user=user)
+        return user
+
+    def test_clinician_code_links_the_intended_patient_once(self):
+        clinician = self.make_clinician()
+        patient = self.make_patient()
+
+        self.client.force_authenticate(clinician)
+        created = self.client.post(
+            '/api/auth/care-invitations/',
+            {},
+            format='json',
+        )
+        self.assertEqual(created.status_code, 201)
+        self.assertEqual(len(created.data['code']), 8)
+
+        self.client.force_authenticate(patient)
+        accepted = self.client.post(
+            '/api/auth/care-invitations/accept/',
+            {'code': created.data['code']},
+            format='json',
+        )
+        self.assertEqual(accepted.status_code, 200)
+        patient.patient_profile.refresh_from_db()
+        self.assertEqual(
+            patient.patient_profile.primary_clinician,
+            clinician.clinician_profile,
+        )
+        self.assertEqual(
+            patient.patient_profile.care_path,
+            CarePath.NEEDS_REVIEW,
+        )
+
+        second = self.client.post(
+            '/api/auth/care-invitations/accept/',
+            {'code': created.data['code']},
+            format='json',
+        )
+        self.assertEqual(second.status_code, 400)
+
+    def test_patient_cannot_generate_clinician_invitation(self):
+        patient = self.make_patient()
+        self.client.force_authenticate(patient)
+
+        response = self.client.post(
+            '/api/auth/care-invitations/',
+            {},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_clinician_patient_list_is_limited_to_linked_patients(self):
+        clinician = self.make_clinician()
+        linked = self.make_patient()
+        linked.patient_profile.primary_clinician = clinician.clinician_profile
+        linked.patient_profile.save()
+        unlinked = User.objects.create_user(
+            username='other@example.com',
+            email='other@example.com',
+            password='test-password',
+            role=UserRole.PATIENT,
+        )
+        PatientProfile.objects.create(user=unlinked)
+        self.client.force_authenticate(clinician)
+
+        response = self.client.get('/api/auth/clinician/patients/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['email'], linked.email)

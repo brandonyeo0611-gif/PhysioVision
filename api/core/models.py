@@ -180,3 +180,47 @@ class ClinicianProfile(TimestampedModel):
 
     def __str__(self) -> str:
         return f"Clinician: {self.user}"
+
+
+class CareInvitation(TimestampedModel):
+    """
+    One-time pairing token created by a platform clinician.
+
+    Only a SHA-256 digest is stored. The raw code is returned once at creation
+    and must be shared by the clinician with the intended patient.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinician = models.ForeignKey(
+        ClinicianProfile,
+        on_delete=models.CASCADE,
+        related_name="care_invitations",
+    )
+    code_digest = models.CharField(max_length=64, unique=True, editable=False)
+    code_hint = models.CharField(max_length=4, editable=False)
+    expires_at = models.DateTimeField()
+    accepted_by = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="accepted_care_invitations",
+    )
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        db_table = "core_careinvitation"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["clinician", "is_active"],
+                name="core_carein_clinici_a85527_idx",
+            ),
+            models.Index(
+                fields=["expires_at"],
+                name="core_carein_expires_41daf4_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Care invitation …{self.code_hint} from {self.clinician.user}"

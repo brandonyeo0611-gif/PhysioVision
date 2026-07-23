@@ -19,6 +19,28 @@ class SessionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'duration_seconds', 'created_at', 'updated_at']
 
+    def validate(self, attrs):
+        prescription = attrs.get(
+            'prescription',
+            getattr(self.instance, 'prescription', None),
+        )
+        exercise = attrs.get(
+            'exercise',
+            getattr(self.instance, 'exercise', None),
+        )
+        request = self.context.get('request')
+        patient = getattr(getattr(request, 'user', None), 'patient_profile', None)
+        if prescription:
+            if not patient or prescription.patient_id != patient.id:
+                raise serializers.ValidationError({
+                    'prescription': 'This prescription does not belong to the patient.'
+                })
+            if exercise and prescription.exercise_id != exercise.id:
+                raise serializers.ValidationError({
+                    'prescription': 'The prescription does not match the exercise.'
+                })
+        return attrs
+
 
 class PainCheckinSerializer(serializers.ModelSerializer):
     class Meta:
