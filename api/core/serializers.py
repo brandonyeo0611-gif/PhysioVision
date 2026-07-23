@@ -6,7 +6,13 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
-from .models import ClinicianProfile, PatientProfile, User, UserRole
+from .models import (
+    CareInvitation,
+    ClinicianProfile,
+    PatientProfile,
+    User,
+    UserRole,
+)
 
 
 def _parse_days_per_week(s):
@@ -37,7 +43,6 @@ class RegisterSerializer(serializers.Serializer):
     mobility_status = serializers.ChoiceField(choices=PatientProfile.mobility_status.field.choices, required=False)  # type: ignore[attr-defined]
     focus_side      = serializers.ChoiceField(choices=PatientProfile.focus_side.field.choices, required=False)  # type: ignore[attr-defined]
     cue_style       = serializers.ChoiceField(choices=PatientProfile.cue_style.field.choices, required=False)  # type: ignore[attr-defined]
-    care_path       = serializers.ChoiceField(choices=PatientProfile.care_path.field.choices, required=False)  # type: ignore[attr-defined]
 
     # Clinician-only optional fields
     license_number = serializers.CharField(max_length=50, required=False, allow_blank=True)
@@ -53,7 +58,7 @@ class RegisterSerializer(serializers.Serializer):
         password = validated_data.pop('password')
 
         # Pull out profile-specific fields before creating the User
-        patient_fields   = {k: validated_data.pop(k) for k in ['goal', 'activity_level', 'mobility_status', 'focus_side', 'cue_style', 'care_path'] if k in validated_data}
+        patient_fields   = {k: validated_data.pop(k) for k in ['goal', 'activity_level', 'mobility_status', 'focus_side', 'cue_style'] if k in validated_data}
         clinician_fields = {k: validated_data.pop(k) for k in ['license_number', 'specialty'] if k in validated_data}
 
         user = User.objects.create_user(
@@ -96,9 +101,42 @@ class PatientProfileSerializer(serializers.ModelSerializer):
             'id', 'user', 'goal', 'activity_level', 'mobility_status',
             'focus_side', 'cue_style', 'care_path',
             'height_cm', 'weight_kg', 'medical_history', 'low_risk_acknowledged',
+            'wellness_screening_status', 'wellness_screening_answers',
+            'wellness_screened_at',
             'primary_clinician', 'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'user', 'care_path', 'wellness_screening_status',
+            'wellness_screening_answers', 'wellness_screened_at',
+            'created_at', 'updated_at',
+        ]
+
+
+
+class WellnessScreeningSerializer(serializers.Serializer):
+    not_treating_condition = serializers.BooleanField()
+    no_clinician_restrictions = serializers.BooleanField()
+    general_wellness_goal = serializers.BooleanField()
+    no_concerning_symptoms = serializers.BooleanField()
+
+
+class CareInvitationSerializer(serializers.ModelSerializer):
+    clinician_name = serializers.CharField(
+        source="clinician.user.get_full_name",
+        read_only=True,
+    )
+
+    class Meta:
+        model = CareInvitation
+        fields = [
+            "id", "clinician_name", "code_hint", "expires_at",
+            "accepted_at", "is_active", "created_at",
+        ]
+        read_only_fields = fields
+
+
+class CareInvitationAcceptSerializer(serializers.Serializer):
+    code = serializers.CharField(min_length=8, max_length=8, trim_whitespace=True)
 
 
 class ClinicianProfileSerializer(serializers.ModelSerializer):

@@ -1,7 +1,13 @@
 // Central API client — all backend calls go through here.
 // Token is kept in localStorage so it survives page refreshes.
 
-const BASE = "http://localhost:8000/api";
+const runtimeWindow = typeof window === "undefined" ? {} : window;
+const runtimeHostname = runtimeWindow.location?.hostname ?? "localhost";
+const BASE = runtimeWindow.PHYSIOVISION_API_BASE ?? (
+  ["localhost", "127.0.0.1"].includes(runtimeHostname)
+    ? "http://localhost:8000/api"
+    : "/api"
+);
 const TOKEN_KEY = "physiovision.token";
 
 function getToken() {
@@ -74,6 +80,22 @@ export async function patchMe(fields) {
   return request("PATCH", "/auth/me/", fields);
 }
 
+export async function postWellnessScreening(answers) {
+  return request("POST", "/auth/wellness-screening/", answers);
+}
+
+export async function createCareInvitation() {
+  return request("POST", "/auth/care-invitations/", {});
+}
+
+export async function acceptCareInvitation(code) {
+  return request("POST", "/auth/care-invitations/accept/", { code });
+}
+
+export async function getClinicianPatients() {
+  return request("GET", "/auth/clinician/patients/");
+}
+
 // ── Sessions ──────────────────────────────────────────────────
 
 export async function postSession(session) {
@@ -116,4 +138,16 @@ export async function getPatientSessions(patientId) {
 
 export async function getPatientPainCheckins(patientId) {
   return request("GET", `/pain-checkins/?patient=${patientId}`);
+export async function getPrescriptions() {
+  return request("GET", "/prescriptions/");
+}
+
+export async function createPrescription(prescription) {
+  return request("POST", "/prescriptions/", prescription);
+}
+
+// ── Role-specific AI assistant ───────────────────────────────
+
+export async function sendAgentMessage(message) {
+  return request("POST", "/auth/agent/chat/", { message });
 }

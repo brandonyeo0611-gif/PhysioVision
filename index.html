@@ -36,8 +36,14 @@
     </nav>
 
     <div class="header-actions">
-      <button class="text-button profile-header-button" id="headerSignIn" type="button" data-open="auth-modal">
-        Sign in
+      <button
+        class="text-button profile-header-button"
+        id="headerSignIn"
+        type="button"
+        data-open="auth-modal"
+        data-auth-mode="login"
+      >
+        Sign in / Register
       </button>
       <button class="text-button profile-header-button" id="headerSignOut" type="button" style="display:none" onclick="window.pvLogout()">
         Sign out
@@ -65,8 +71,14 @@
     <a href="#practice">Exercise guide</a>
     <a href="#care-team">For care teams</a>
     <a href="#safety">Safety</a>
-    <button class="text-button mobile-profile-button" id="mobileSignIn" type="button" data-open="auth-modal">
-      Sign in
+    <button
+      class="text-button mobile-profile-button"
+      id="mobileSignIn"
+      type="button"
+      data-open="auth-modal"
+      data-auth-mode="login"
+    >
+      Sign in / Register
     </button>
     <button class="text-button mobile-profile-button" id="mobileSignOut" type="button" style="display:none" onclick="window.pvLogout()">
       Sign out
@@ -99,6 +111,16 @@
               <span>Try it live</span>
               <span class="round-link-icon" aria-hidden="true">↓</span>
             </a>
+          </div>
+          <div class="hero-account-entry" aria-label="Account access">
+            <span>Already have a patient or physiotherapist account?</span>
+            <button
+              type="button"
+              data-open="auth-modal"
+              data-auth-mode="login"
+            >
+              Sign in securely →
+            </button>
           </div>
         </div>
 
@@ -432,10 +454,19 @@
           <ul id="cueList" class="cue-list" aria-label="Live coaching cues"></ul>
           <div id="symWarning" class="sym-warning hidden"></div>
 
-          <!-- Pain check-in — shown after a session is logged -->
-          <div id="painCheckin" class="pain-checkin hidden" aria-live="polite">
-            <p class="pain-checkin-label">How is your pain right now? <span>(0 = none, 10 = severe)</span></p>
-            <div class="pain-checkin-buttons">
+          <!-- Spoken, structured safety check-in shown before and after exercise -->
+          <div
+            id="painCheckin"
+            class="pain-checkin hidden"
+            role="group"
+            aria-labelledby="painCheckinTitle"
+          >
+            <span id="painCheckinContext" class="pain-checkin-context">Before exercise</span>
+            <p id="painCheckinTitle" class="pain-checkin-label">
+              What is your pain level right now?
+              <span>(0 = none, 10 = severe)</span>
+            </p>
+            <div id="painLevelChoices" class="pain-checkin-buttons" aria-label="Pain level">
               <button type="button" data-pain="0">0</button>
               <button type="button" data-pain="1">1</button>
               <button type="button" data-pain="2">2</button>
@@ -448,7 +479,28 @@
               <button type="button" data-pain="9">9</button>
               <button type="button" data-pain="10">10</button>
             </div>
-            <button type="button" id="painSkip" class="text-button">Skip</button>
+            <div id="recoveryChoices" class="recovery-choices hidden">
+              <p>Compared with your previous session, how is your recovery?</p>
+              <div>
+                <button type="button" data-recovery="better">Better</button>
+                <button type="button" data-recovery="same">About the same</button>
+                <button type="button" data-recovery="worse">Worse</button>
+                <button type="button" data-recovery="unsure">Not sure</button>
+              </div>
+            </div>
+            <p id="voiceCheckinStatus" class="voice-checkin-status" role="status" aria-live="polite"></p>
+            <div class="pain-checkin-actions">
+              <button type="button" id="painVoiceInput" class="button voice-answer-button">
+                <span aria-hidden="true">🎙</span> Answer by voice
+              </button>
+              <button type="button" id="painSkip" class="text-button">Skip check-in</button>
+            </div>
+            <small class="pain-safety-note">
+              Stop and seek appropriate help for severe or new pain, dizziness,
+              chest pain, numbness, or sudden weakness. This check-in does not diagnose you.
+              Voice recognition may be processed by your browser provider; use
+              the buttons if you prefer not to send audio.
+            </small>
           </div>
           <div id="trackingWarning" class="tracking-warning hidden"></div>
 
@@ -704,12 +756,12 @@
     <section class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="plan-title">
       <button class="modal-close" type="button" data-close-modal aria-label="Close">×</button>
       <div class="modal-progress">
-        <span class="active"></span><span></span><span></span>
+        <span class="active"></span><span></span><span></span><span></span>
       </div>
 
       <form id="planForm">
         <div class="form-step active" data-step="1">
-          <p class="eyebrow">Step 1 of 3</p>
+          <p class="eyebrow">Step 1 of 4</p>
           <h2 id="plan-title">What would you like to improve?</h2>
           <p class="form-intro">Choose the goal that matters most right now.</p>
           <div class="goal-options">
@@ -740,9 +792,65 @@
         </div>
 
         <div class="form-step" data-step="2">
-          <p class="eyebrow">Step 2 of 3</p>
+          <p class="eyebrow">Step 2 of 4 · General wellness check</p>
+          <h2>Is self-guided wellness the right pathway?</h2>
+          <p class="form-intro">
+            This does not diagnose or medically clear you. Every answer must be
+            “Yes” before the prototype can create a general wellness plan.
+          </p>
+          <div class="wellness-screening">
+            <fieldset>
+              <legend>
+                I am not using this plan to treat a diagnosed condition,
+                injury, or recent surgery.
+              </legend>
+              <label><input type="radio" name="notTreatingCondition" value="true" required /> Yes</label>
+              <label><input type="radio" name="notTreatingCondition" value="false" /> No or not sure</label>
+            </fieldset>
+            <fieldset>
+              <legend>
+                I have not been given movement or exercise restrictions by a
+                doctor or physiotherapist.
+              </legend>
+              <label><input type="radio" name="noClinicianRestrictions" value="true" required /> Yes</label>
+              <label><input type="radio" name="noClinicianRestrictions" value="false" /> No or not sure</label>
+            </fieldset>
+            <fieldset>
+              <legend>
+                I want a general mobility, strength, balance, or activity
+                routine—not rehabilitation treatment.
+              </legend>
+              <label><input type="radio" name="generalWellnessGoal" value="true" required /> Yes</label>
+              <label><input type="radio" name="generalWellnessGoal" value="false" /> No or not sure</label>
+            </fieldset>
+            <fieldset>
+              <legend>
+                I have no new or concerning symptoms such as chest pain,
+                dizziness, sudden weakness, or new numbness.
+              </legend>
+              <label><input type="radio" name="noConcerningSymptoms" value="true" required /> Yes</label>
+              <label><input type="radio" name="noConcerningSymptoms" value="false" /> No or not sure</label>
+            </fieldset>
+          </div>
+          <p class="wellness-screening-note">
+            If any answer is “No or not sure,” no self-guided plan will be
+            generated. The prototype will recommend professional review.
+          </p>
+          <div class="modal-actions">
+            <button class="text-link" type="button" data-prev-step>← Back</button>
+            <button class="button button-dark" type="button" data-next-step>
+              Check my pathway <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-step" data-step="3">
+          <p class="eyebrow">Step 3 of 4</p>
           <h2>Help us fit the plan to you.</h2>
-          <p class="form-intro">This information shapes exercise intensity and safety checks.</p>
+          <p class="form-intro">
+            These preferences select from a conservative, reviewed wellness
+            exercise list. They do not change medical safety limits.
+          </p>
           <div class="field-grid">
             <label>
               <span>Preferred name</span>
@@ -787,17 +895,6 @@
               </select>
             </label>
           </div>
-          <label class="history-field">
-            <span>Relevant medical or injury history</span>
-            <textarea name="history" rows="3" placeholder="For example: knee surgery, falls, heart condition, or none"></textarea>
-          </label>
-          <label class="check-row">
-            <input type="checkbox" name="lowRisk" required />
-            <span>
-              I understand this self-guided plan is for low-risk exercise and I
-              should seek professional advice if I have a health concern.
-            </span>
-          </label>
           <div class="modal-actions">
             <button class="text-link" type="button" data-prev-step>← Back</button>
             <button class="button button-dark" type="button" data-next-step>
@@ -806,37 +903,46 @@
           </div>
         </div>
 
-        <div class="form-step" data-step="3">
-          <div class="plan-created-icon" aria-hidden="true">✓</div>
-          <p class="eyebrow">Your starting plan</p>
-          <h2>Three gentle sessions.<br />One clear goal.</h2>
-          <p class="form-intro" id="planSummary">
-            Based on your profile, we’ve created a gradual knee-strength routine.
-          </p>
-          <div class="generated-plan">
-            <div class="generated-day">
-              <span>Mon</span>
-              <div><strong>Strength & control</strong><small>Half squats · Leg extensions</small></div>
-              <em>12 min</em>
+        <div class="form-step" data-step="4">
+          <div id="wellnessEligibleOutcome">
+            <div class="plan-created-icon" aria-hidden="true">✓</div>
+            <p class="eyebrow">Your conservative starting plan</p>
+            <h2>Three gentle sessions.<br />One clear goal.</h2>
+            <p class="form-intro" id="planSummary">
+              Based on your confirmed wellness pathway, we’ve created a gradual routine.
+            </p>
+            <div class="generated-plan" id="generatedWellnessPlan"></div>
+            <div class="plan-note">
+              <span>i</span>
+              <p>
+                This is a hackathon wellness prototype, not medical clearance.
+                Stop if you feel unwell and seek appropriate professional advice.
+              </p>
             </div>
-            <div class="generated-day">
-              <span>Wed</span>
-              <div><strong>Mobility & balance</strong><small>Heel stretch · Calf raises</small></div>
-              <em>10 min</em>
-            </div>
-            <div class="generated-day">
-              <span>Sat</span>
-              <div><strong>Strength & confidence</strong><small>Leg curls · Half squats</small></div>
-              <em>14 min</em>
-            </div>
+            <button class="button button-coral full-button" type="button" data-start-plan>
+              Start my first session <span aria-hidden="true">→</span>
+            </button>
           </div>
-          <div class="plan-note">
-            <span>i</span>
-            <p>A clinician should review this plan before use if you reported a medical condition or recent injury.</p>
+          <div id="wellnessReviewOutcome" class="wellness-review-outcome hidden">
+            <div class="plan-created-icon review" aria-hidden="true">!</div>
+            <p class="eyebrow">Professional review recommended</p>
+            <h2>No self-guided wellness plan was created.</h2>
+            <p class="form-intro">
+              One or more answers indicate that general wellness may not be the
+              correct pathway. This is not a diagnosis.
+            </p>
+            <ul id="wellnessReviewReasons"></ul>
+            <div class="plan-note warning">
+              <span>i</span>
+              <p>
+                Follow existing clinician instructions. Seek appropriate help
+                for urgent or concerning symptoms.
+              </p>
+            </div>
+            <button class="button button-dark full-button" type="button" data-review-screening>
+              Review my answers
+            </button>
           </div>
-          <button class="button button-coral full-button" type="button" data-start-plan>
-            Start my first session <span aria-hidden="true">→</span>
-          </button>
         </div>
       </form>
     </section>
@@ -894,13 +1000,11 @@
               <option value="detailed">Explain each correction</option>
             </select>
           </label>
-          <label>
+          <div class="profile-path-status">
             <span>Exercise pathway</span>
-            <select name="carePath">
-              <option value="wellness">General wellness</option>
-              <option value="clinician">Physiotherapist-prescribed rehabilitation</option>
-            </select>
-          </label>
+            <strong id="profileCarePathStatus">Assigned from your screening or active prescription</strong>
+            <small>Patients cannot manually unlock clinician-guided exercises.</small>
+          </div>
           <label>
             <span>Current activity</span>
             <select name="activity">
@@ -918,6 +1022,29 @@
           Save my profile <span aria-hidden="true">→</span>
         </button>
       </form>
+      <section id="patientCareLink" class="care-link-card hidden" aria-labelledby="careLinkTitle">
+        <p class="eyebrow">Clinician programme</p>
+        <h3 id="careLinkTitle">Connect to your physiotherapist</h3>
+        <p>
+          Enter the one-time code supplied by a physiotherapist using
+          PhysioVision. This is a platform link—not a hospital login.
+        </p>
+        <div class="care-link-form">
+          <label for="careInviteCode">8-character invitation code</label>
+          <input
+            id="careInviteCode"
+            type="text"
+            maxlength="8"
+            autocomplete="one-time-code"
+            spellcheck="false"
+            placeholder="ABCD2345"
+          />
+          <button id="acceptCareInvite" class="button button-dark" type="button">
+            Connect
+          </button>
+        </div>
+        <p id="careInviteStatus" class="care-workflow-status" role="status" aria-live="polite"></p>
+      </section>
     </section>
   </div>
 
@@ -986,7 +1113,7 @@
       <div class="therapist-content">
         <div class="therapist-heading">
           <div>
-            <p class="eyebrow" id="dashboard-date">Monday, 20 July</p>
+            <p class="eyebrow">Monday, 20 July</p>
             <h2 id="therapist-title">Patient overview</h2>
           </div>
           <button class="button button-dark button-small" type="button" data-close-modal>
@@ -994,9 +1121,9 @@
           </button>
         </div>
         <div class="clinician-stats">
-          <div><span>Active patients</span><strong id="stat-active-patients">—</strong><em id="stat-active-sub"></em></div>
-          <div><span>Need review</span><strong id="stat-need-review">—</strong><em id="stat-review-sub" class="attention"></em></div>
-          <div><span>Adherence</span><strong id="stat-adherence">—</strong><em id="stat-adherence-sub"></em></div>
+          <div><span>Active patients</span><strong>24</strong><em>3 new this month</em></div>
+          <div><span>Need review</span><strong>4</strong><em class="attention">2 high priority</em></div>
+          <div><span>Adherence</span><strong>82%</strong><em>↑ 6% this month</em></div>
         </div>
         <div class="patient-table-wrap">
           <div class="table-heading">
@@ -1004,15 +1131,83 @@
             <button type="button">View all patients →</button>
           </div>
           <div class="patient-row patient-row-head">
-            <span>Patient</span><span>Programme</span><span>Last session</span><span>Trend</span><span>Pain</span><span>Status</span>
+            <span>Patient</span><span>Programme</span><span>Last session</span><span>Trend</span><span>Status</span>
           </div>
-          <div id="patient-table-body">
-            <!-- populated by therapist.js -->
+          <div class="patient-row">
+            <span class="patient-name"><i class="avatar avatar-lee">SL</i><span><strong>Sarah Lee</strong><small>68 · Knee strength</small></span></span>
+            <span>Week 3 of 6</span><span>Today</span><span class="mini-trend trend-falling">⌁</span>
+            <span><button class="status-pill status-pill-review" type="button">Review now</button></span>
+          </div>
+          <div class="patient-row">
+            <span class="patient-name"><i class="avatar avatar-chan">PC</i><span><strong>Peter Chan</strong><small>74 · Balance</small></span></span>
+            <span>Week 2 of 8</span><span>Yesterday</span><span class="mini-trend trend-flat">—</span>
+            <span><button class="status-pill status-pill-watch" type="button">Monitor</button></span>
+          </div>
+          <div class="patient-row">
+            <span class="patient-name"><i class="avatar avatar-wong">AW</i><span><strong>Anna Wong</strong><small>71 · Hip mobility</small></span></span>
+            <span>Week 5 of 6</span><span>2 days ago</span><span class="mini-trend trend-rising">↗</span>
+            <span><button class="status-pill status-pill-good" type="button">On track</button></span>
           </div>
         </div>
       </div>
     </section>
   </div>
+
+  <button
+    class="agent-chat-launcher"
+    id="agentChatLauncher"
+    type="button"
+    aria-controls="agentChatPanel"
+    aria-expanded="false"
+  >
+    <span aria-hidden="true">✦</span>
+    Ask your AI
+  </button>
+
+  <section
+    class="agent-chat-panel"
+    id="agentChatPanel"
+    aria-labelledby="agentChatTitle"
+    hidden
+  >
+    <header class="agent-chat-header">
+      <div>
+        <span id="agentChatRole">Personalized Gemini guidance</span>
+        <h2 id="agentChatTitle">Your movement companion</h2>
+      </div>
+      <button id="agentChatClose" type="button" aria-label="Close assistant">×</button>
+    </header>
+    <div
+      class="agent-chat-messages"
+      id="agentChatMessages"
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions"
+    ></div>
+    <p class="agent-chat-status" id="agentChatStatus" role="status"></p>
+    <form class="agent-chat-form" id="agentChatForm">
+      <label for="agentChatInput">Message your assistant</label>
+      <textarea
+        id="agentChatInput"
+        rows="2"
+        maxlength="2000"
+        placeholder="Ask about an exercise or your session…"
+        required
+      ></textarea>
+      <button
+        class="agent-chat-voice"
+        id="agentChatVoice"
+        type="button"
+        aria-label="Speak your message"
+        title="Speak your message"
+      >🎙</button>
+      <button class="button button-coral" id="agentChatSubmit" type="submit">Send</button>
+    </form>
+    <p class="agent-chat-disclaimer">
+      AI can make mistakes. Follow your clinician’s restrictions and stop if you feel unwell.
+      Voice may be processed by your browser provider, and its transcript is sent to Gemini.
+    </p>
+  </section>
 
   <div class="toast" id="toast" role="status" aria-live="polite">
     <span>✓</span>
@@ -1021,8 +1216,9 @@
 
   <!-- Auth modal -->
   <div class="modal-shell" id="auth-modal" aria-hidden="true">
-    <div class="modal-backdrop"></div>
+    <div class="modal-backdrop" data-close-modal></div>
     <section class="modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <button class="modal-close" type="button" data-close-modal aria-label="Close">×</button>
       <p class="eyebrow">PhysioVision</p>
       <h2 id="auth-title">Sign in or create account</h2>
 
@@ -1085,5 +1281,7 @@
   <script type="module" src="therapist.js"></script>
   <script type="module" src="exercise-library.js"></script>
   <script type="module" src="main.js"></script>
+  <script type="module" src="agent-chat.js"></script>
+  <script type="module" src="care-workflow.js"></script>
 </body>
 </html>

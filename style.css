@@ -430,6 +430,28 @@ textarea:focus-visible {
   gap: 26px;
 }
 
+.hero-account-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 22px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 12px;
+}
+
+.hero-account-entry button {
+  padding: 0;
+  border: 0;
+  color: var(--white);
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
 .round-link {
   display: inline-flex;
   align-items: center;
@@ -2928,6 +2950,73 @@ details.metrics summary {
   width: 100%;
 }
 
+.wellness-screening {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.wellness-screening fieldset {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--white);
+}
+
+.wellness-screening legend {
+  display: block;
+  width: 100%;
+  margin-bottom: 9px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.wellness-screening label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 7px 9px;
+  border: 1px solid #cfd8d3;
+  border-radius: 8px;
+  color: var(--muted);
+  background: #fafbf9;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wellness-screening label + label {
+  margin-left: 6px;
+}
+
+.wellness-screening label:has(input:checked) {
+  border-color: var(--green);
+  color: var(--ink);
+  background: var(--mint-light);
+}
+
+.wellness-screening input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--green);
+}
+
+.wellness-screening-note {
+  margin: 0 0 18px;
+  padding: 11px 13px;
+  border-left: 3px solid var(--coral);
+  color: var(--muted);
+  background: var(--cream);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2938,6 +3027,38 @@ details.metrics summary {
 .history-field {
   position: relative;
   display: block;
+}
+
+.profile-path-status {
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--cream);
+}
+
+.profile-path-status span,
+.profile-path-status strong,
+.profile-path-status small {
+  display: block;
+}
+
+.profile-path-status span {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.profile-path-status strong {
+  font-size: 11px;
+}
+
+.profile-path-status small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
 }
 
 .field-grid label > span,
@@ -3005,6 +3126,11 @@ details.metrics summary {
   background: var(--green-light);
   font-size: 25px;
   font-weight: 800;
+}
+
+.plan-created-icon.review {
+  color: #8c2c21;
+  background: #fbe8e4;
 }
 
 .generated-plan {
@@ -3080,8 +3206,32 @@ details.metrics summary {
   margin: 0;
 }
 
+.plan-note.warning {
+  color: #7c3028;
+  background: #fbe8e4;
+}
+
+.wellness-review-outcome ul {
+  margin: 0 0 18px;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .full-button {
   width: 100%;
+}
+
+@media (max-width: 640px) {
+  .wellness-screening label {
+    width: 100%;
+  }
+
+  .wellness-screening label + label {
+    margin-top: 6px;
+    margin-left: 0;
+  }
 }
 
 .profile-modal {
@@ -3113,6 +3263,54 @@ details.metrics summary {
 
 .profile-safety-note p {
   margin: 0;
+}
+
+.care-link-card {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid #c7dcd1;
+  border-radius: 12px;
+  background: var(--mint-light);
+}
+
+.care-link-card h3,
+.clinician-workflow-card h3 {
+  margin: 3px 0 8px;
+  font-size: 19px;
+}
+
+.care-link-card > p:not(.eyebrow),
+.clinician-workflow-card > p:not(.eyebrow) {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.care-link-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.care-link-form label {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.care-link-form input {
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.care-workflow-status {
+  min-height: 18px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .booking-modal {
@@ -3363,6 +3561,126 @@ details.metrics summary {
   color: var(--coral-dark);
 }
 
+.clinician-stats strong.demo-status {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.clinician-access-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 22px;
+  border: 1px solid #e5c79d;
+  border-radius: 11px;
+  color: #715225;
+  background: #fff0d2;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.clinician-access-message strong,
+.clinician-access-message span {
+  display: block;
+}
+
+.clinician-access-message strong {
+  margin-bottom: 3px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.clinician-auth-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.clinician-auth-actions .text-button {
+  color: #715225;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.clinician-workflow-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.75fr) minmax(380px, 1.25fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.clinician-workflow-card {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--white);
+}
+
+.invite-code-result {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px dashed var(--green);
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--mint-light);
+}
+
+.invite-code-result span,
+.invite-code-result strong,
+.invite-code-result small {
+  display: block;
+}
+
+.invite-code-result span,
+.invite-code-result small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.invite-code-result strong {
+  margin: 5px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 25px;
+  letter-spacing: 0.14em;
+}
+
+#prescriptionForm {
+  display: grid;
+  gap: 10px;
+}
+
+#prescriptionForm label > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+#prescriptionForm textarea {
+  min-height: 62px;
+  resize: vertical;
+}
+
+.prescription-dose-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.clinician-patient-row {
+  grid-template-columns: 1.2fr 1.5fr 0.7fr 1fr;
+}
+
+.clinician-empty-state {
+  margin: 0;
+  padding: 18px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .patient-table-wrap {
   overflow: hidden;
   border: 1px solid var(--line);
@@ -3591,6 +3909,12 @@ details.metrics summary {
     margin-top: 18px;
   }
 
+  .clinician-access-message,
+  .clinician-auth-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .hero-grid {
     grid-template-columns: 1fr;
     padding-top: 76px;
@@ -3706,6 +4030,10 @@ details.metrics summary {
 
   .clinician-profile div:last-child {
     display: none;
+  }
+
+  .clinician-workflow-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3984,6 +4312,18 @@ details.metrics summary {
     grid-template-columns: 1fr;
   }
 
+  .prescription-dose-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .care-link-form {
+    grid-template-columns: 1fr;
+  }
+
+  .care-link-form label {
+    grid-column: auto;
+  }
+
   .patient-table-wrap {
     overflow-x: auto;
   }
@@ -4019,15 +4359,23 @@ details.metrics summary {
   margin-top: 1.25rem;
   padding: 1rem 1.25rem;
   background: var(--surface-2, #f4f7f6);
+  border: 1px solid #d4e4dc;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 .pain-checkin.hidden { display: none; }
+.pain-checkin-context {
+  color: var(--green);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .pain-checkin-label {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   margin: 0;
 }
 .pain-checkin-label span {
@@ -4054,14 +4402,270 @@ details.metrics summary {
   background: #e8f4ef;
   border-color: #4caf80;
 }
+.pain-checkin-buttons button:focus-visible,
+.recovery-choices button:focus-visible,
+.voice-answer-button:focus-visible {
+  outline: 3px solid rgba(22, 101, 82, 0.28);
+  outline-offset: 2px;
+}
 .pain-checkin-buttons button[data-pain="8"],
 .pain-checkin-buttons button[data-pain="9"],
 .pain-checkin-buttons button[data-pain="10"] {
   border-color: #e8a0a0;
   color: #c0392b;
 }
+.recovery-choices.hidden { display: none; }
+.recovery-choices p {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.recovery-choices > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.recovery-choices button {
+  min-height: 2.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid #c8d8d0;
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  font: 700 0.82rem/1.2 var(--font-body);
+  cursor: pointer;
+}
+.voice-checkin-status {
+  min-height: 1.25rem;
+  margin: 0;
+  color: #4f6159;
+  font-size: 0.82rem;
+}
+.pain-checkin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+}
+.voice-answer-button {
+  min-height: 44px;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--green);
+  color: var(--green);
+  background: #fff;
+}
+.voice-answer-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.pain-safety-note {
+  color: #68766f;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
 #painSkip {
   font-size: 0.8rem;
   color: #888;
   align-self: flex-start;
+}
+
+/* ── Role-specific Gemini assistant ───────────────────────── */
+.agent-chat-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 89;
+  display: inline-flex;
+  gap: 9px;
+  align-items: center;
+  padding: 13px 18px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--white);
+  background: var(--ink-deep);
+  box-shadow: 0 14px 40px rgba(6, 24, 25, 0.28);
+  font: 700 14px/1 var(--font-body);
+  cursor: pointer;
+}
+
+.agent-chat-launcher span {
+  color: var(--coral);
+  font-size: 18px;
+}
+
+.agent-chat-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 82px;
+  z-index: 90;
+  display: grid;
+  grid-template-rows: auto minmax(150px, 1fr) auto auto auto;
+  width: min(390px, calc(100vw - 32px));
+  height: min(590px, calc(100vh - 120px));
+  overflow: hidden;
+  border: 1px solid rgba(23, 56, 58, 0.12);
+  border-radius: 22px;
+  background: var(--paper);
+  box-shadow: 0 24px 80px rgba(6, 24, 25, 0.3);
+}
+
+.agent-chat-panel[hidden] {
+  display: none;
+}
+
+.agent-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 20px 17px;
+  color: var(--white);
+  background: var(--ink-deep);
+}
+
+.agent-chat-header span {
+  display: block;
+  margin-bottom: 5px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.agent-chat-header h2 {
+  margin: 0;
+  color: inherit;
+  font-size: 19px;
+}
+
+.agent-chat-header button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: var(--white);
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.agent-chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.agent-chat-message {
+  max-width: 88%;
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 15px;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.agent-chat-message-assistant {
+  align-self: flex-start;
+  color: var(--ink);
+  background: #e8f1eb;
+  border-bottom-left-radius: 5px;
+}
+
+.agent-chat-message-user {
+  align-self: flex-end;
+  color: var(--white);
+  background: var(--ink);
+  border-bottom-right-radius: 5px;
+}
+
+.agent-chat-message-error {
+  align-self: flex-start;
+  color: #8c2c21;
+  background: #fbe8e4;
+}
+
+.agent-chat-status {
+  min-height: 18px;
+  margin: 0;
+  padding: 0 18px;
+  color: #637172;
+  font-size: 11px;
+}
+
+.agent-chat-form {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  padding: 10px 14px 8px;
+  border-top: 1px solid var(--line);
+}
+
+.agent-chat-form label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.agent-chat-form textarea {
+  min-height: 46px;
+  max-height: 100px;
+  resize: vertical;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  background: var(--white);
+  font: 14px/1.35 var(--font-body);
+}
+
+.agent-chat-form .button {
+  align-self: end;
+  min-height: 46px;
+  padding: 0 17px;
+}
+
+.agent-chat-voice {
+  align-self: end;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--green);
+  background: var(--white);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.agent-chat-voice:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.agent-chat-disclaimer {
+  margin: 0;
+  padding: 0 16px 13px;
+  color: #6c7778;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+@media (max-width: 560px) {
+  .agent-chat-launcher {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .agent-chat-panel {
+    right: 8px;
+    bottom: 72px;
+    width: calc(100vw - 16px);
+    height: min(620px, calc(100vh - 88px));
+  }
 }
