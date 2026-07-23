@@ -430,6 +430,28 @@ textarea:focus-visible {
   gap: 26px;
 }
 
+.hero-account-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 22px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 12px;
+}
+
+.hero-account-entry button {
+  padding: 0;
+  border: 0;
+  color: var(--white);
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
 .round-link {
   display: inline-flex;
   align-items: center;
@@ -3545,6 +3567,10 @@ details.metrics summary {
 }
 
 .clinician-access-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
   padding: 22px;
   border: 1px solid #e5c79d;
   border-radius: 11px;
@@ -3552,6 +3578,30 @@ details.metrics summary {
   background: #fff0d2;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.clinician-access-message strong,
+.clinician-access-message span {
+  display: block;
+}
+
+.clinician-access-message strong {
+  margin-bottom: 3px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.clinician-auth-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.clinician-auth-actions .text-button {
+  color: #715225;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .clinician-workflow-grid {
@@ -3857,6 +3907,12 @@ details.metrics summary {
 
   .mobile-nav .button {
     margin-top: 18px;
+  }
+
+  .clinician-access-message,
+  .clinician-auth-actions {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .hero-grid {

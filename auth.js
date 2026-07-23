@@ -31,13 +31,13 @@ function updateAuthButtons(loggedIn) {
 function showModal() {
   shell.classList.add("is-open");
   shell.setAttribute("aria-hidden", "false");
-  document.body.style.overflow = "hidden";
+  document.body.classList.add("modal-open");
 }
 
 function hideModal() {
   shell.classList.remove("is-open");
   shell.setAttribute("aria-hidden", "true");
-  document.body.style.overflow = "";
+  document.body.classList.remove("modal-open");
 }
 
 function showError(el, msg) {
@@ -50,27 +50,39 @@ function clearError(el) {
   el.style.display = "none";
 }
 
-// Open modal when Sign in button is clicked
-document.querySelectorAll("[data-open='auth-modal']").forEach(btn => {
-  btn.addEventListener("click", showModal);
-});
-
-// Tab switching
-tabLogin.addEventListener("click", () => {
+function selectLoginTab() {
   loginForm.style.display = "";
   registerForm.style.display = "none";
   tabLogin.className = "button button-coral";
   tabRegister.className = "button button-light";
   clearError(loginError);
-});
+}
 
-tabRegister.addEventListener("click", () => {
+function selectRegisterTab(role = "patient") {
   loginForm.style.display = "none";
   registerForm.style.display = "";
   tabLogin.className = "button button-light";
   tabRegister.className = "button button-coral";
+  registerForm.elements.role.value = role;
   clearError(registerError);
+}
+
+// Account buttons can open the normal sign-in form or a role-specific
+// registration form. The backend still decides the user's role after login.
+document.querySelectorAll("[data-open='auth-modal']").forEach((button) => {
+  button.addEventListener("click", () => {
+    if (button.dataset.authMode === "register") {
+      selectRegisterTab(button.dataset.authRole || "patient");
+    } else {
+      selectLoginTab();
+    }
+    showModal();
+  });
 });
+
+// Tab switching
+tabLogin.addEventListener("click", selectLoginTab);
+tabRegister.addEventListener("click", () => selectRegisterTab());
 
 // Login
 loginForm.addEventListener("submit", async (e) => {

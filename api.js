@@ -1,8 +1,10 @@
 // Central API client — all backend calls go through here.
 // Token is kept in localStorage so it survives page refreshes.
 
-const BASE = window.PHYSIOVISION_API_BASE ?? (
-  ["localhost", "127.0.0.1"].includes(window.location.hostname)
+const runtimeWindow = typeof window === "undefined" ? {} : window;
+const runtimeHostname = runtimeWindow.location?.hostname ?? "localhost";
+const BASE = runtimeWindow.PHYSIOVISION_API_BASE ?? (
+  ["localhost", "127.0.0.1"].includes(runtimeHostname)
     ? "http://localhost:8000/api"
     : "/api"
 );
