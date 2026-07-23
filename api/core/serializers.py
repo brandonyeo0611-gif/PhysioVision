@@ -1,8 +1,20 @@
+import re
+from datetime import timedelta
+
 from django.contrib.auth import authenticate
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
 from .models import ClinicianProfile, PatientProfile, User, UserRole
+
+
+def _parse_days_per_week(s):
+    """Parse '4–5' or '4-5' or '4' → int lower bound."""
+    try:
+        return int(re.split(r'[–\-]', str(s))[0])
+    except (ValueError, TypeError):
+        return 1
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -100,3 +112,82 @@ class ClinicianProfileSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+
+
+class PatientListSerializer(serializers.ModelSerializer):
+    full_name             = serializers.SerializerMethodField()
+    age                   = serializers.SerializerMethodField()
+    last_session_at       = serializers.SerializerMethodField()
+    open_escalations_count = serializers.SerializerMethodField()
+    trend                 = serializers.SerializerMethodField()
+    adherence_pct         = serializers.SerializerMethodField()
+    latest_pain_level     = serializers.SerializerMethodField()
+    active_prescription   = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = PatientProfile
+        fields = [
+            'id', 'full_name', 'age', 'goal', 'activity_level', 'mobility_status',
+            'focus_side', 'care_path', 'last_session_at', 'open_escalations_count',
+            'trend', 'adherence_pct', 'latest_pain_level', 'active_prescription',
+        ]
+
+    def get_full_name(self, obj):
+        return f"{obj.user.first_name} {obj.user.last_name}".strip()
+
+    def get_age(self, obj):
+        if not obj.user.date_of_birth:
+            return None
+        today = timezone.now().date()
+        dob   = obj.user.date_of_birth
+        return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+    def get_last_session_at(self, obj):
+        return obj.sessions.order_by('-started_at').values_list('started_at', flat=True).first()
+
+    def get_open_escalations_count(self, obj):
+        return obj.escalations.filter(status='open').count()
+
+    def get_trend(self, obj):
+        sessions = [
+            s for s in obj.sessions.order_by('-started_at')[:3]
+            if s.angle_summaries
+        ]
+        if len(sessions) < 2:
+            return 'stable'
+        # Compute per-session scalar: mean of all angle means
+        def session_scalar(s):
+            means = [v['mean'] for v in s.angle_summaries.values() if isinstance(v, dict) and 'mean' in v]
+            return sum(means) / len(means) if means else 0
+        scalars = [session_scalar(s) for s in reversed(sessions)]  # oldest → newest
+        delta = scalars[-1] - scalars[0]
+        if delta > 5:
+            return 'improving'
+        if delta < -5:
+            return 'declining'
+        return 'stable'
+
+    def get_adherence_pct(self, obj):
+        prescriptions = [p for p in obj.prescriptions.all() if p.is_active]
+        if not prescriptions:
+            return None
+        week_ago = timezone.now() - timedelta(days=7)
+        sessions_last_7d = obj.sessions.filter(started_at__gte=week_ago).count()
+        target = max(_parse_days_per_week(p.days_per_week) for p in prescriptions)
+        return min(100, round(sessions_last_7d / target * 100)) if target else None
+
+    def get_latest_pain_level(self, obj):
+        checkin = obj.pain_checkins.order_by('-checked_at').first()
+        return checkin.pain_level if checkin else None
+
+    def get_active_prescription(self, obj):
+        rx = next((p for p in obj.prescriptions.all() if p.is_active), None)
+        if not rx:
+            return None
+        return {
+            'exercise_id':   rx.exercise_id,
+            'exercise_name': rx.exercise.name,
+            'sets':          rx.sets,
+            'reps':          rx.reps,
+            'days_per_week': rx.days_per_week,
+        }

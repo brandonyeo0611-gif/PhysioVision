@@ -1,16 +1,36 @@
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from .models import UserRole
+from .models import PatientProfile, UserRole
 from .serializers import (
     ClinicianProfileSerializer,
     LoginSerializer,
+    PatientListSerializer,
     PatientProfileSerializer,
     RegisterSerializer,
 )
+
+
+class IsClinician(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.role == UserRole.CLINICIAN)
+
+
+class PatientViewSet(ReadOnlyModelViewSet):
+    serializer_class   = PatientListSerializer
+    permission_classes = [IsAuthenticated, IsClinician]
+
+    def get_queryset(self):
+        return (
+            PatientProfile.objects
+            .filter(primary_clinician=self.request.user.clinician_profile)
+            .select_related('user')
+            .prefetch_related('sessions', 'escalations', 'prescriptions', 'prescriptions__exercise', 'pain_checkins')
+        )
 
 
 class RegisterView(APIView):

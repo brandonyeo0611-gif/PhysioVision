@@ -979,14 +979,14 @@
           <button type="button"><span>◷</span> Consultations</button>
         </nav>
         <div class="clinician-profile">
-          <div class="avatar avatar-mei">ML</div>
-          <div><strong>Mei Lin</strong><span>Physiotherapist</span></div>
+          <div class="avatar avatar-mei" id="clinician-avatar">ML</div>
+          <div><strong id="clinician-name">—</strong><span>Physiotherapist</span></div>
         </div>
       </aside>
       <div class="therapist-content">
         <div class="therapist-heading">
           <div>
-            <p class="eyebrow">Monday, 20 July</p>
+            <p class="eyebrow" id="dashboard-date">Monday, 20 July</p>
             <h2 id="therapist-title">Patient overview</h2>
           </div>
           <button class="button button-dark button-small" type="button" data-close-modal>
@@ -994,9 +994,9 @@
           </button>
         </div>
         <div class="clinician-stats">
-          <div><span>Active patients</span><strong>24</strong><em>3 new this month</em></div>
-          <div><span>Need review</span><strong>4</strong><em class="attention">2 high priority</em></div>
-          <div><span>Adherence</span><strong>82%</strong><em>↑ 6% this month</em></div>
+          <div><span>Active patients</span><strong id="stat-active-patients">—</strong><em id="stat-active-sub"></em></div>
+          <div><span>Need review</span><strong id="stat-need-review">—</strong><em id="stat-review-sub" class="attention"></em></div>
+          <div><span>Adherence</span><strong id="stat-adherence">—</strong><em id="stat-adherence-sub"></em></div>
         </div>
         <div class="patient-table-wrap">
           <div class="table-heading">
@@ -1004,22 +1004,10 @@
             <button type="button">View all patients →</button>
           </div>
           <div class="patient-row patient-row-head">
-            <span>Patient</span><span>Programme</span><span>Last session</span><span>Trend</span><span>Status</span>
+            <span>Patient</span><span>Programme</span><span>Last session</span><span>Trend</span><span>Pain</span><span>Status</span>
           </div>
-          <div class="patient-row">
-            <span class="patient-name"><i class="avatar avatar-lee">SL</i><span><strong>Sarah Lee</strong><small>68 · Knee strength</small></span></span>
-            <span>Week 3 of 6</span><span>Today</span><span class="mini-trend trend-falling">⌁</span>
-            <span><button class="status-pill status-pill-review" type="button">Review now</button></span>
-          </div>
-          <div class="patient-row">
-            <span class="patient-name"><i class="avatar avatar-chan">PC</i><span><strong>Peter Chan</strong><small>74 · Balance</small></span></span>
-            <span>Week 2 of 8</span><span>Yesterday</span><span class="mini-trend trend-flat">—</span>
-            <span><button class="status-pill status-pill-watch" type="button">Monitor</button></span>
-          </div>
-          <div class="patient-row">
-            <span class="patient-name"><i class="avatar avatar-wong">AW</i><span><strong>Anna Wong</strong><small>71 · Hip mobility</small></span></span>
-            <span>Week 5 of 6</span><span>2 days ago</span><span class="mini-trend trend-rising">↗</span>
-            <span><button class="status-pill status-pill-good" type="button">On track</button></span>
+          <div id="patient-table-body">
+            <!-- populated by therapist.js -->
           </div>
         </div>
       </div>
@@ -1094,6 +1082,7 @@
 
   <script type="module" src="auth.js"></script>
   <script type="module" src="ui.js"></script>
+  <script type="module" src="therapist.js"></script>
   <script type="module" src="exercise-library.js"></script>
   <script type="module" src="main.js"></script>
 </body>

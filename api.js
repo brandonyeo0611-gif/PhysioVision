@@ -103,3 +103,17 @@ export async function getCalibrations() {
 export async function getExercises() {
   return request("GET", "/exercises/");
 }
+
+// ── Therapist ─────────────────────────────────────────────────
+
+export async function getPatients() {
+  return request("GET", "/patients/");
+}
+
+export async function getPatientSessions(patientId) {
+  return request("GET", `/sessions/?patient=${patientId}`);
+}
+
+export async function getPatientPainCheckins(patientId) {
+  return request("GET", `/pain-checkins/?patient=${patientId}`);
+}

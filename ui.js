@@ -63,6 +63,8 @@ import {
       showPlanStep(1);
     } else if (id === "profile-modal") {
       fillFormFromProfile(profileForm, loadProfile());
+    } else if (id === "therapist-view") {
+      window.pvLoadDashboard?.();
     }
 
     window.setTimeout(() => {

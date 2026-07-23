@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'api.catalogue',
     'api.sessions',
     'api.consultations',
+    'api.slack_bot',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -134,3 +135,14 @@ STATIC_URL = 'static/'
 
 # CORS — allow all origins for hackathon dev; tighten before real production
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Slack workbuddy AI
+SLACK_BOT_TOKEN     = env('SLACK_BOT_TOKEN', default='')
+SLACK_SIGNING_SECRET = env('SLACK_SIGNING_SECRET', default='')
+SLACK_CHANNEL_ID    = env('SLACK_CHANNEL_ID', default='#physiovision-alerts')
+
+# Gemini API
+GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
+
+# Frontend base URL (used in Slack deep links)
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
