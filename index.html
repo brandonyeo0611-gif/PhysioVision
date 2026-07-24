@@ -15,7 +15,7 @@
     href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=30" />
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -320,6 +320,7 @@
           <div class="stage" id="cameraStage">
             <video id="webcam" autoplay playsinline muted></video>
             <canvas id="overlay"></canvas>
+            <div id="angleDebug" style="position:absolute;bottom:8px;left:8px;z-index:10;background:rgba(0,0,0,0.6);color:#fff;font-size:12px;padding:4px 8px;border-radius:6px;font-family:monospace;"></div>
             <div class="camera-placeholder" id="cameraPlaceholder">
               <div class="position-guide" aria-hidden="true">
                 <span class="guide-head"></span>
@@ -399,6 +400,9 @@
           <div class="control-row">
             <label for="exerciseSelect">Choose exercise</label>
             <select id="exerciseSelect"></select>
+          </div>
+          <div id="exerciseImageWrap" class="exercise-image-wrap" style="display:none">
+            <img id="exerciseImage" src="" alt="" class="exercise-image" />
           </div>
           <div class="side-and-dose">
             <div class="control-row">
@@ -558,7 +562,7 @@
           </details>
         </aside>
       </div>
-      <div class="pose-strip" id="poseStrip" aria-label="Exercise phase guide"></div>
+      <div class="pose-strip" id="poseStrip" aria-label="Exercise phase guide" style="display:none"></div>
 
       <div class="exercise-library" aria-labelledby="exerciseLibraryTitle">
         <div class="exercise-library-heading">
@@ -1276,12 +1280,12 @@
     </section>
   </div>
 
-  <script type="module" src="auth.js"></script>
-  <script type="module" src="ui.js"></script>
-  <script type="module" src="therapist.js"></script>
-  <script type="module" src="exercise-library.js"></script>
-  <script type="module" src="main.js"></script>
-  <script type="module" src="agent-chat.js"></script>
-  <script type="module" src="care-workflow.js"></script>
+  <script type="module" src="auth.js?v=13"></script>
+  <script type="module" src="ui.js?v=13"></script>
+  <script type="module" src="therapist.js?v=13"></script>
+  <script type="module" src="exercise-library.js?v=13"></script>
+  <script type="module" src="main.js?v=13"></script>
+  <script type="module" src="agent-chat.js?v=13"></script>
+  <script type="module" src="care-workflow.js?v=13"></script>
 </body>
 </html>

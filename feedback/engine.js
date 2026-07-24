@@ -1,4 +1,4 @@
-import { EXERCISES, EXERCISE_MAP } from "../exercises/registry.js";
+import { EXERCISES, EXERCISE_MAP } from "../exercises/registry.js?v=30";
 import { applyCalibration } from "../personalization.js";
 
 export { EXERCISES };
@@ -131,11 +131,12 @@ export class FeedbackEngine {
   }
 
   _phaseMatches(phase, angles) {
+    const threshold = this.exercise.matchThreshold ?? 0.7;
     for (const [key, condition] of Object.entries(phase)) {
       if (key === "name") continue;
       const measurement = this._resolve(key, angles);
       if (!measurement || measurement.lowConfidence) return false;
-      if (!_conditionMatches(measurement.value, condition)) return false;
+      if (_conditionCloseness(measurement.value, condition) < threshold) return false;
     }
     return true;
   }

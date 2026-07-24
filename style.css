@@ -1103,21 +1103,18 @@ textarea:focus-visible {
 }
 
 .practice-section {
-  padding: 110px 3.5vw;
+  padding: 0;
   color: var(--white);
   background: var(--ink);
 }
 
 .practice-heading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  padding: 58px 3vw 55px;
+  display: none;
 }
 
 .practice-heading h2 {
   margin: 0;
-  font-size: clamp(48px, 5.5vw, 92px);
+  font-size: clamp(32px, 3.5vw, 56px);
   font-weight: 520;
 }
 
@@ -1157,8 +1154,8 @@ textarea:focus-visible {
 
 .practice-app {
   display: grid;
-  grid-template-columns: minmax(0, 1.56fr) minmax(360px, 0.7fr);
-  min-height: 720px;
+  grid-template-columns: minmax(0, 1.56fr) minmax(320px, 0.6fr);
+  height: calc(100vh - 74px);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.17);
   border-radius: 20px;
@@ -1170,12 +1167,13 @@ textarea:focus-visible {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
 }
 
 .stage {
   position: relative;
   flex: 1;
-  min-height: 650px;
+  min-height: 0;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 38%, rgba(185, 217, 200, 0.13), transparent 24%),
@@ -1500,9 +1498,11 @@ textarea:focus-visible {
 
 .panel {
   min-width: 0;
-  padding: 30px;
+  padding: 20px 24px;
   color: var(--ink);
   background: var(--paper);
+  overflow-y: auto;
+  height: 100%;
 }
 
 .panel-step {
@@ -2014,12 +2014,11 @@ textarea:focus-visible {
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 18px;
-  min-height: 190px;
-  margin-top: 18px;
-  padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.17);
-  border-radius: 18px;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
   background: var(--ink-deep);
 }
 
@@ -2027,44 +2026,57 @@ textarea:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 16px 22px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  min-width: 100px;
 }
 
-.pose-card svg {
-  width: 120px;
-  height: auto;
-  border: 2px solid rgba(255, 255, 255, 0.16);
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.04);
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.pose-card svg.landscape {
-  width: 160px;
-}
-
-.pose-card.active svg {
+.pose-card.active {
   border-color: var(--coral);
-  box-shadow: 0 0 22px rgba(239, 91, 61, 0.24);
+  background: rgba(239, 91, 61, 0.1);
+  box-shadow: 0 0 24px rgba(239, 91, 61, 0.28);
+}
+
+.pose-step {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pose-card.active .pose-step {
+  background: var(--coral);
+  color: #fff;
 }
 
 .pose-label {
   color: rgba(255, 255, 255, 0.55);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  text-align: center;
+  line-height: 1.3;
 }
 
 .pose-card.active .pose-label {
-  color: var(--coral);
+  color: #fff;
 }
 
 .pose-arrow-sep {
-  align-self: center;
-  margin-top: -24px;
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 20px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 24px;
+  font-weight: 300;
 }
 
 /* ── Draft exercise library ─────────────────────────────────────────── */
@@ -3977,7 +3989,7 @@ details.metrics summary {
   }
 
   .stage {
-    min-height: 620px;
+    min-height: 300px;
   }
 
   .progress-layout {
@@ -4140,7 +4152,7 @@ details.metrics summary {
   }
 
   .stage {
-    min-height: 520px;
+    min-height: 260px;
   }
 
   .camera-topbar {
@@ -4668,4 +4680,19 @@ details.metrics summary {
     width: calc(100vw - 16px);
     height: min(620px, calc(100vh - 88px));
   }
+}
+
+.exercise-image-wrap {
+  margin-top: 0.75rem;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.exercise-image {
+  width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  display: block;
+  border-radius: 10px;
+  background: #f7f5f0;
 }

@@ -14,7 +14,7 @@ import {
   measureHandExerciseFrame,
   measurePoseExerciseFrame,
 } from "./exercise-tracking.js";
-import { FeedbackEngine, EXERCISES } from "./feedback/engine.js";
+import { FeedbackEngine, EXERCISES } from "./feedback/engine.js?v=30";
 import { POSES } from "./poses.js";
 import {
   createCalibration,
@@ -99,6 +99,35 @@ const feedbackEl         = document.getElementById("feedbackBanner");
 const cameraStage        = document.getElementById("cameraStage");
 const personalizationTitle  = document.getElementById("personalizationTitle");
 const personalizationDetail = document.getElementById("personalizationDetail");
+const exerciseImageWrap     = document.getElementById("exerciseImageWrap");
+const exerciseImageEl       = document.getElementById("exerciseImage");
+
+const EXERCISE_IMAGES = {
+  "heel-cord-stretch":     "img/exercises/heel-cord-stretch.jpg",
+  "standing-quad-stretch": "img/exercises/standing-quad-stretch.jpg",
+  "half-squats":               "img/exercises/half-squats.jpg",
+  "supine-hamstring-stretch":  "img/exercises/supine-hamstring-stretch.jpg",
+  "hamstring-curls":           "img/exercises/standing-quad-stretch.jpg",
+  "calf-raises":               "img/exercises/calf-raises.jpg",
+  "leg-extensions":            "img/exercises/leg-extensions.jpg",
+  "supine-leg-raise":              "img/exercises/supine-leg-raise.jpg",
+  "straight-leg-raises-supine":    "img/exercises/straight-leg-raises-supine.jpg",
+  "straight-leg-raises-prone":     "img/exercises/straight-leg-raises-prone.jpg",
+  "hip-abduction":             "img/exercises/hip-abduction.jpg",
+  "leg-presses":               "img/exercises/leg-presses.jpg",
+  "hip-adduction":             "img/exercises/hip-adduction.jpg",
+};
+
+function renderExerciseImage(exercise) {
+  const src = EXERCISE_IMAGES[exercise.id];
+  if (src && exerciseImageEl && exerciseImageWrap) {
+    exerciseImageEl.src = src;
+    exerciseImageEl.alt = exercise.name;
+    exerciseImageWrap.style.display = "";
+  } else if (exerciseImageWrap) {
+    exerciseImageWrap.style.display = "none";
+  }
+}
 const calibrationBadge      = document.getElementById("calibrationBadge");
 const calibrationDetail     = document.getElementById("calibrationDetail");
 const openCalibrationBtn    = document.getElementById("openCalibration");
@@ -318,6 +347,7 @@ renderTrackingWarning(engine.exercise);
 renderPoseStrip(engine.exercise, engine.stages[0]);
 renderStaticPhaseFlow(engine);
 renderPersonalization();
+renderExerciseImage(engine.exercise);
 
 exSelect.addEventListener("change", () => {
   flushSession();
@@ -334,8 +364,9 @@ exSelect.addEventListener("change", () => {
   progressSection.classList.remove("hidden");
   renderPrescription(engine.exercise);
   renderTrackingWarning(engine.exercise);
-renderPoseStrip(engine.exercise, engine.stages[0]);
+  renderPoseStrip(engine.exercise, engine.stages[0]);
   renderStaticPhaseFlow(engine);
+  renderExerciseImage(engine.exercise);
   repCountEl.textContent = "0";
   resetSpokenCoaching();
   cueListEl.innerHTML = "";
@@ -771,8 +802,23 @@ function renderFrame() {
 
 // ── Panel updates ─────────────────────────────────────────────────────────────
 
+const angleDebugEl = document.getElementById("angleDebug");
+
 function updateFeedbackPanel(angles, timestampMs) {
   const fb = engine.update(angles, timestampMs);
+
+  // Live angle debug overlay
+  if (angleDebugEl) {
+    const tracked = Object.entries(engine.exercise.trackedAngles ?? {});
+    const lines = tracked.map(([key]) => {
+      const side = engine.side;
+      const sideKey = `${side}${key[0].toUpperCase()}${key.slice(1)}`;
+      const a = angles[key] ?? angles[sideKey];
+      if (!a) return `${key}: —`;
+      return `${key}: ${a.lowConfidence ? "hidden" : a.value.toFixed(0) + "°"}`;
+    });
+    angleDebugEl.textContent = lines.join(" | ") + ` | phase: ${fb.phase}`;
+  }
   const holdSeconds = fb.exercise.trackingHoldSeconds
     ?? activeDose(fb.exercise).holdSeconds
     ?? 3;
@@ -1212,22 +1258,18 @@ function cancelCalibration() {
 // ── Static panel renders ──────────────────────────────────────────────────────
 
 function renderPoseStrip(exercise, activePhase) {
-  const images = exercise.stageImages ?? [];
   const stages = engine.stages;
-  if (!images.length) { poseStripEl.innerHTML = ""; return; }
+  if (!stages.length) { poseStripEl.innerHTML = ""; return; }
 
-  poseStripEl.innerHTML = images.map((poseKey, i) => {
-    const svg = POSES[poseKey] ?? "";
-    const isLandscape = svg.includes('viewBox="0 0 160');
-    const isActive = stages[i] === activePhase;
-    const label = stages[i] ?? "";
-    const arrow = i < images.length - 1
+  poseStripEl.innerHTML = stages.map((stage, i) => {
+    const isActive = stage === activePhase;
+    const arrow = i < stages.length - 1
       ? `<span class="pose-arrow-sep">→</span>`
       : "";
     return `
       <div class="pose-card${isActive ? " active" : ""}">
-        ${svg.replace("<svg ", `<svg class="${isLandscape ? "landscape" : ""}" `)}
-        <span class="pose-label">${label}</span>
+        <span class="pose-step">${i + 1}</span>
+        <span class="pose-label">${stage}</span>
       </div>
       ${arrow}`;
   }).join("");

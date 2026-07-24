@@ -35,20 +35,20 @@ export const EXERCISES = [
     category: "stretch",
     prescription: { sets: 2, reps: 4, holdSeconds: 30, daysPerWeek: "6–7" },
     camera: "front",
-    // Primary: ankle dorsiflexion of the back (affected) leg.
-    // Measured as angle(knee, ankle, footIndex).
-    // Neutral standing ≈ 90°; calf on stretch (dorsiflexed) < 85°.
+    // Ankle dorsiflexion — wide ranges for demo/illustration tracking.
     trackedAngles: {
       ankle: { points: ["knee", "ankle", "footIndex"], side: "affected" },
     },
     phases: [
-      { name: "neutral", ankle: [88, 115] },
-      { name: "stretch",  ankle: [50, 87] },   // no overlap with neutral — frontal depth inference is imprecise
+      { name: "neutral", ankle: [150, 180] },
+      { name: "stretch",  ankle: [30, 120] },
     ],
     repRule: "neutral → stretch → hold",
+    phaseConfirmationMs: 0,
+    startConfirmed: true,
     stageImages: ["standing", "calf-stretch"],
     cues: {
-      "ankle>92": "Lean forward more to feel the stretch in the calf",
+      "ankle>115": "Lean forward more to feel the stretch in the calf",
     },
     trackingNotes: "Side camera; back leg ankle/footIndex landmarks must be visible.",
   },
@@ -64,13 +64,13 @@ export const EXERCISES = [
       knee: { points: ["hip", "knee", "ankle"], side: "affected" },
     },
     phases: [
-      { name: "standing", knee: [155, 180] },
-      { name: "stretch",  knee: [30, 70] },    // deeply flexed, heel near buttock
+      { name: "standing", knee: [140, 180] },
+      { name: "stretch",  knee: [30, 105] },   // widened — older adults may not flex past 90
     ],
     repRule: "standing → stretch → hold",
     stageImages: ["standing", "quad-stretch"],
     cues: {
-      "knee>80": "Pull heel closer to your buttock for a deeper stretch",
+      "knee>110": "Try to pull your heel a little closer to your buttock",
     },
     trackingNotes: "Side camera. Ankle landmark may be partially occluded when heel is raised; flag low-confidence.",
   },
